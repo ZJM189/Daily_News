@@ -1,0 +1,48 @@
+# Local agent/runtime files
+.agents/
+.codex/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.python-version
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Databases and local data
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# Logs
+logs/
+*.log
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
