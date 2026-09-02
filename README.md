@@ -73,3 +73,6 @@ daily_news/
 4. 访问 API 健康检查：`http://localhost/api/v1/healthz`
 
 首个管理员账号后续通过后端命令 `daily-news create-admin` 创建。
+
+如果直接暴露 Next.js 开发服务器给外网预览，可在启动前设置
+`NEXT_ALLOWED_DEV_ORIGINS=你的域名或服务器IP`，避免 Next.js 16 拦截开发态 HMR 请求。
