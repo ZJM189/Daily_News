@@ -54,3 +54,22 @@ AI 热点信息每日汇总 Web 看板项目。
 - 数据库：PostgreSQL
 - 缓存/任务状态：Redis
 - 调度：APScheduler 起步，后续可升级到 Celery 或 Dramatiq
+
+## 工程结构
+
+```text
+daily_news/
+├── api/      # FastAPI 后端，DDD 模块化单体
+├── web/      # Next.js App Router 前端
+├── infra/    # Caddy 等基础设施配置
+└── docs/     # 调研、需求、产品和系统设计文档
+```
+
+## 本地启动
+
+1. 复制环境变量模板：`cp .env.example .env`
+2. 启动基础服务和应用：`docker compose up --build`
+3. 访问 Web：`http://localhost`
+4. 访问 API 健康检查：`http://localhost/api/v1/healthz`
+
+首个管理员账号后续通过后端命令 `daily-news create-admin` 创建。

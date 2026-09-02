@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+npm-debug.log*
