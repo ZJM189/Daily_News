@@ -31,6 +31,7 @@ def test_admin_configuration_routes_are_registered() -> None:
         "/api/v1/following/preferences",
         "/api/v1/following/items",
         "/api/v1/following/saved-searches",
+        "/api/v1/following/saved-searches/{search_id}",
         "/api/v1/following/feedback",
     }
 

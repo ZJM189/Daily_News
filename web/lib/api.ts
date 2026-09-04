@@ -318,8 +318,26 @@ export function createSavedSearch(payload: {
   query: Record<string, unknown>;
   apply_as_filter?: boolean;
   apply_as_boost?: boolean;
+  enabled?: boolean;
 }): Promise<SavedSearch> {
   return apiPost<SavedSearch>("/api/v1/following/saved-searches", payload);
+}
+
+export function updateSavedSearch(
+  searchId: string,
+  payload: {
+    name?: string;
+    query?: Record<string, unknown>;
+    apply_as_filter?: boolean;
+    apply_as_boost?: boolean;
+    enabled?: boolean;
+  }
+): Promise<SavedSearch> {
+  return apiPatch<SavedSearch>(`/api/v1/following/saved-searches/${searchId}`, payload);
+}
+
+export function deleteSavedSearch(searchId: string): Promise<{ ok: boolean }> {
+  return apiDelete<{ ok: boolean }>(`/api/v1/following/saved-searches/${searchId}`);
 }
 
 export function createFeedback(payload: {
@@ -351,4 +369,16 @@ async function errorMessage(response: Response): Promise<string> {
   } catch {
     return `HTTP ${response.status}`;
   }
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(path, {
+    method: "DELETE",
+    credentials: "include",
+    headers: JSON_HEADERS
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  return ((await response.json()) as ApiEnvelope<T>).data;
 }

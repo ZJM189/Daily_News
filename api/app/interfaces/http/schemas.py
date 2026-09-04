@@ -238,6 +238,15 @@ class CreateSavedSearchRequest(BaseModel):
     query: dict[str, Any]
     apply_as_filter: bool = True
     apply_as_boost: bool = True
+    enabled: bool = True
+
+
+class UpdateSavedSearchRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    query: dict[str, Any] | None = None
+    apply_as_filter: bool | None = None
+    apply_as_boost: bool | None = None
+    enabled: bool | None = None
 
 
 class CreateFeedbackRequest(BaseModel):

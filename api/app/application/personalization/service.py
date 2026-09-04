@@ -54,6 +54,7 @@ class PersonalizationService:
         query: dict[str, Any],
         apply_as_filter: bool,
         apply_as_boost: bool,
+        enabled: bool,
     ) -> SavedSearchDTO:
         cleaned_query = _clean_query(query)
         saved_search = self._repository.create_saved_search(
@@ -62,10 +63,40 @@ class PersonalizationService:
             query=cleaned_query,
             apply_as_filter=apply_as_filter,
             apply_as_boost=apply_as_boost,
+            enabled=enabled,
         )
-        if apply_as_boost:
+        if apply_as_boost and enabled:
             self._merge_search_into_preference(actor=actor, query=cleaned_query)
         return saved_search
+
+    def update_saved_search(
+        self,
+        *,
+        actor: UserDTO,
+        search_id: UUID,
+        name: str | None = None,
+        query: dict[str, Any] | None = None,
+        apply_as_filter: bool | None = None,
+        apply_as_boost: bool | None = None,
+        enabled: bool | None = None,
+    ) -> SavedSearchDTO:
+        cleaned_query = _clean_query(query) if query is not None else None
+        cleaned_name = name.strip() if isinstance(name, str) else None
+        saved_search = self._repository.update_saved_search(
+            user_id=actor.id,
+            search_id=search_id,
+            name=cleaned_name or None,
+            query=cleaned_query,
+            apply_as_filter=apply_as_filter,
+            apply_as_boost=apply_as_boost,
+            enabled=enabled,
+        )
+        if saved_search.apply_as_boost and saved_search.enabled:
+            self._merge_search_into_preference(actor=actor, query=saved_search.query)
+        return saved_search
+
+    def delete_saved_search(self, *, actor: UserDTO, search_id: UUID) -> None:
+        self._repository.delete_saved_search(user_id=actor.id, search_id=search_id)
 
     def record_feedback(
         self,

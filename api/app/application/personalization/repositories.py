@@ -23,7 +23,24 @@ class PersonalizationRepository(Protocol):
         query: dict[str, Any],
         apply_as_filter: bool,
         apply_as_boost: bool,
+        enabled: bool,
     ) -> SavedSearchDTO:
+        raise NotImplementedError
+
+    def update_saved_search(
+        self,
+        *,
+        user_id: UUID,
+        search_id: UUID,
+        name: str | None = None,
+        query: dict[str, Any] | None = None,
+        apply_as_filter: bool | None = None,
+        apply_as_boost: bool | None = None,
+        enabled: bool | None = None,
+    ) -> SavedSearchDTO:
+        raise NotImplementedError
+
+    def delete_saved_search(self, *, user_id: UUID, search_id: UUID) -> None:
         raise NotImplementedError
 
     def create_feedback(

@@ -68,18 +68,57 @@ class SqlAlchemyPersonalizationRepository(PersonalizationRepository):
         query: dict[str, object],
         apply_as_filter: bool,
         apply_as_boost: bool,
+        enabled: bool,
     ) -> SavedSearchDTO:
         search = SavedSearch(
             user_id=user_id,
             name=name,
             query=query,
-            enabled=True,
+            enabled=enabled,
             apply_as_filter=apply_as_filter,
             apply_as_boost=apply_as_boost,
         )
         self._session.add(search)
         self._session.flush()
         return self._saved_search_to_dto(search)
+
+    def update_saved_search(
+        self,
+        *,
+        user_id: UUID,
+        search_id: UUID,
+        name: str | None = None,
+        query: dict[str, object] | None = None,
+        apply_as_filter: bool | None = None,
+        apply_as_boost: bool | None = None,
+        enabled: bool | None = None,
+    ) -> SavedSearchDTO:
+        search = self._session.scalar(
+            select(SavedSearch).where(SavedSearch.id == search_id, SavedSearch.user_id == user_id)
+        )
+        if search is None:
+            raise ValueError("saved search not found")
+        if name is not None:
+            search.name = name
+        if query is not None:
+            search.query = query
+        if apply_as_filter is not None:
+            search.apply_as_filter = apply_as_filter
+        if apply_as_boost is not None:
+            search.apply_as_boost = apply_as_boost
+        if enabled is not None:
+            search.enabled = enabled
+        self._session.flush()
+        return self._saved_search_to_dto(search)
+
+    def delete_saved_search(self, *, user_id: UUID, search_id: UUID) -> None:
+        search = self._session.scalar(
+            select(SavedSearch).where(SavedSearch.id == search_id, SavedSearch.user_id == user_id)
+        )
+        if search is None:
+            raise ValueError("saved search not found")
+        self._session.delete(search)
+        self._session.flush()
 
     def create_feedback(
         self,

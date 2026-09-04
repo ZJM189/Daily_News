@@ -2,14 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { PaginationBar } from "../components/PaginationBar";
-import {
-  createFeedback,
-  getUserPreference,
-  listFollowingItems,
-  listSavedSearches,
-  saveUserPreference
-} from "../../lib/api";
-import type { FollowingItem, PageMeta, SavedSearch, UserPreference } from "../../lib/types";
+import { createFeedback, getUserPreference, listFollowingItems, saveUserPreference } from "../../lib/api";
+import type { FollowingItem, PageMeta, UserPreference } from "../../lib/types";
 
 const emptyPreference: UserPreference = {
   follow_keywords: [],
@@ -47,26 +41,21 @@ export default function FollowingPage() {
   const [excludeInput, setExcludeInput] = useState("");
   const [domainInput, setDomainInput] = useState("");
   const [feed, setFeed] = useState<FollowingItem[]>([]);
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const preferenceFormId = "following-preference-form";
 
   async function load(page = 1) {
     setLoading(true);
     setError(null);
     try {
-      const [nextPreference, nextFeed, nextSavedSearches] = await Promise.all([
-        getUserPreference(),
-        listFollowingItems(page),
-        listSavedSearches()
-      ]);
+      const [nextPreference, nextFeed] = await Promise.all([getUserPreference(), listFollowingItems(page)]);
       setPreference(nextPreference);
       setFeed(nextFeed.data);
       setMeta(nextFeed.meta);
-      setSavedSearches(nextSavedSearches);
     } catch (err) {
       setError(err instanceof Error ? err.message : "关注内容加载失败");
     } finally {
@@ -80,12 +69,9 @@ export default function FollowingPage() {
     setMessage(null);
     setError(null);
     try {
-      const saved = await saveUserPreference(preference);
-      setPreference(saved);
-      setMessage("关注规则已更新");
-      const nextFeed = await listFollowingItems(1);
-      setFeed(nextFeed.data);
-      setMeta(nextFeed.meta);
+      await saveUserPreference(preference);
+      setMessage("关注已保存");
+      await load(meta.page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败，请稍后重试");
     } finally {
@@ -104,7 +90,7 @@ export default function FollowingPage() {
       });
       setMessage(action === "block_source" ? "已屏蔽该来源" : "反馈已记录");
       if (action === "block_source") {
-        await load(1);
+        await load(meta.page);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "反馈失败，请稍后重试");
@@ -126,7 +112,7 @@ export default function FollowingPage() {
     });
   }
 
-  function toggleList(field: "follow_categories" | "follow_source_types", value: string) {
+  function toggleList(field: "follow_categories" | "follow_source_types" | "disabled_source_types", value: string) {
     const current = preference[field];
     setPreference({
       ...preference,
@@ -145,6 +131,8 @@ export default function FollowingPage() {
       preference.exclude_keywords.length ||
       preference.follow_categories.length ||
       preference.follow_source_types.length ||
+      preference.disabled_source_types.length ||
+      preference.blocked_source_ids.length ||
       preference.blocked_domains.length
   );
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.page_size));
@@ -155,7 +143,7 @@ export default function FollowingPage() {
         <div>
           <p className="eyebrow">个性化信息流</p>
           <h1>我的关注</h1>
-          <p className="description">关注关键词会提高排序权重，排除关键词和屏蔽域名会直接过滤内容。</p>
+          <p className="description">左侧保存当前关注偏好，右侧展示当前生效规则。</p>
         </div>
         <button className="ghostButton" type="button" onClick={() => void load(meta.page)}>
           刷新
@@ -166,16 +154,11 @@ export default function FollowingPage() {
       {error ? <section className="errorState compact">{error}</section> : null}
 
       <section className="followingLayout">
-        <form className="preferencePanel" onSubmit={handleSave}>
-          <h2>关注规则</h2>
-          {savedSearches.length ? (
-            <div className="savedSearchBlock">
-              <strong>保存的搜索</strong>
-              {savedSearches.slice(0, 5).map((search) => (
-                <span key={search.id}>{search.name}</span>
-              ))}
-            </div>
-          ) : null}
+        <form className="preferencePanel" id={preferenceFormId} onSubmit={handleSave}>
+          <h2>当前关注规则</h2>
+          <p className="mutedText">
+            关键词、分类和来源类型用于软加权，排除词、屏蔽来源和禁用来源类型会直接过滤。
+          </p>
           <TagEditor
             label="关注关键词"
             placeholder="例如：OpenAI、Agent、AI 编程"
@@ -230,6 +213,21 @@ export default function FollowingPage() {
               ))}
             </div>
           </fieldset>
+          <fieldset>
+            <legend>禁用来源类型</legend>
+            <div className="checkGrid">
+              {sourceTypeOptions.map((option) => (
+                <label key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={preference.disabled_source_types.includes(option.value)}
+                    onChange={() => toggleList("disabled_source_types", option.value)}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <TagEditor
             label="屏蔽域名"
             placeholder="例如：example.com"
@@ -243,11 +241,51 @@ export default function FollowingPage() {
             onRemove={(token) => removeToken("blocked_domains", token)}
           />
           <button type="submit" disabled={saving}>
-            {saving ? "保存中" : "保存关注规则"}
+            {saving ? "保存中" : "保存当前关注"}
           </button>
         </form>
 
         <div className="followingFeed">
+          <section className="rulePanel">
+            <div className="sectionHead">
+              <div>
+                <h2>当前生效规则</h2>
+                <p className="mutedText">保存后会立刻影响右侧关注流预览。</p>
+              </div>
+              <button
+                className="ghostButton"
+                type="button"
+                onClick={() => {
+                  document.getElementById(preferenceFormId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                编辑
+              </button>
+            </div>
+            {!hasRules ? (
+              <div className="emptyState compact">当前没有生效规则。</div>
+            ) : (
+              <div className="ruleSummaryGrid">
+                <RuleGroup label="关注关键词" tokens={preference.follow_keywords} />
+                <RuleGroup label="排除关键词" tokens={preference.exclude_keywords} />
+                <RuleGroup label="关注分类" tokens={preference.follow_categories.map(categoryLabel)} />
+                <RuleGroup
+                  label="关注来源类型"
+                  tokens={preference.follow_source_types.map(sourceTypeLabel)}
+                />
+                <RuleGroup
+                  label="禁用来源类型"
+                  tokens={preference.disabled_source_types.map(sourceTypeLabel)}
+                />
+                <RuleGroup label="屏蔽域名" tokens={preference.blocked_domains} />
+                <RuleGroup
+                  label="屏蔽来源"
+                  tokens={preference.blocked_source_ids.map((value) => shortId(value))}
+                />
+              </div>
+            )}
+          </section>
+
           <div className="listSummary">
             <strong>关注流 {meta.total}</strong>
             <span>
@@ -337,6 +375,36 @@ function TagEditor({
   );
 }
 
+function RuleGroup({ label, tokens }: { label: string; tokens: string[] }) {
+  return (
+    <section className="ruleGroup">
+      <strong>{label}</strong>
+      {tokens.length ? (
+        <div className="ruleChipList">
+          {tokens.map((token) => (
+            <span key={token} className="ruleChip">
+              {token}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <span className="mutedText">未设置</span>
+      )}
+    </section>
+  );
+}
+
 function categoryLabel(value: string) {
   return categoryOptions.find((item) => item.value === value)?.label || value;
+}
+
+function sourceTypeLabel(value: string) {
+  return sourceTypeOptions.find((item) => item.value === value)?.label || value;
+}
+
+function shortId(value: string) {
+  if (value.length <= 10) {
+    return value;
+  }
+  return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }

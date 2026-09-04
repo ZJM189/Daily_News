@@ -729,6 +729,136 @@ h2 {
   padding: 18px;
 }
 
+.rulePanel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHead.tight h3 {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.sectionHead h2 {
+  margin-bottom: 6px;
+}
+
+.sectionHead .mutedText,
+.sectionHead h3 {
+  margin-bottom: 0;
+}
+
+.ruleSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ruleGroup {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.ruleGroup strong {
+  font-size: 13px;
+  color: #344054;
+}
+
+.ruleChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ruleChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border-radius: 999px;
+  background: #edf7f4;
+  color: var(--primary-strong);
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.savedRuleList {
+  display: grid;
+  gap: 12px;
+}
+
+.savedRuleItem {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  padding: 14px;
+}
+
+.ruleActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ruleEditor {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 14px;
+}
+
+.ruleEditorGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ruleEditorGrid label {
+  display: grid;
+  gap: 7px;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ruleToggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.ruleToggleRow label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ruleToggleRow input {
+  min-height: auto;
+}
+
 .tagEditor {
   display: grid;
   gap: 8px;
@@ -811,7 +941,7 @@ legend {
 
 .followingFeed {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .followingItem {
@@ -1051,9 +1181,18 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .ruleSummaryGrid,
+  .ruleEditorGrid {
+    grid-template-columns: 1fr;
+  }
+
   .detailPanel,
   .preferencePanel {
     position: static;
+  }
+
+  .sectionHead {
+    display: grid;
   }
 
   .paginationBar {

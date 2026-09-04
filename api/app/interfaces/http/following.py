@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -12,6 +13,7 @@ from app.interfaces.http.schemas import (
     FollowingItemResponse,
     PaginatedFollowingItemsResponse,
     SavedSearchResponse,
+    UpdateSavedSearchRequest,
     UpdateUserPreferenceRequest,
     UserPreferenceResponse,
 )
@@ -85,8 +87,44 @@ def create_saved_search(
         query=payload.query,
         apply_as_filter=payload.apply_as_filter,
         apply_as_boost=payload.apply_as_boost,
+        enabled=payload.enabled,
     )
     return {"data": SavedSearchResponse.model_validate(search)}
+
+
+@router.patch("/saved-searches/{search_id}")
+def update_saved_search(
+    search_id: UUID,
+    payload: UpdateSavedSearchRequest,
+    actor: Annotated[UserDTO, Depends(get_current_user)],
+    service: Annotated[PersonalizationService, Depends(get_personalization_service)],
+) -> dict[str, object]:
+    try:
+        search = service.update_saved_search(
+            actor=actor,
+            search_id=search_id,
+            name=payload.name,
+            query=payload.query,
+            apply_as_filter=payload.apply_as_filter,
+            apply_as_boost=payload.apply_as_boost,
+            enabled=payload.enabled,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return {"data": SavedSearchResponse.model_validate(search)}
+
+
+@router.delete("/saved-searches/{search_id}")
+def delete_saved_search(
+    search_id: UUID,
+    actor: Annotated[UserDTO, Depends(get_current_user)],
+    service: Annotated[PersonalizationService, Depends(get_personalization_service)],
+) -> dict[str, object]:
+    try:
+        service.delete_saved_search(actor=actor, search_id=search_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return {"data": {"ok": True}}
 
 
 @router.post("/feedback")
