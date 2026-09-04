@@ -219,27 +219,3 @@ pytest -q
 cd web
 npm run build
 ```
-
-## 文档
-
-- [项目调研](docs/ai-daily-news-research.md)
-- [需求分析](docs/requirements-analysis.md)
-- [需求说明书](docs/requirements/requirements-specification.md)
-- [产品需求文档](docs/product/prd.md)
-- [系统架构设计](docs/design/system-architecture.md)
-- [后端 DDD 设计](docs/design/backend-ddd-design.md)
-- [数据库设计](docs/design/database-design.md)
-- [API 接口文档](docs/design/api-design.md)
-- [安全设计](docs/design/security-design.md)
-- [部署文档](docs/deployment.md)
-- [运维手册](docs/operations.md)
-
-## 当前状态
-
-项目处于 MVP 可运行原型阶段，已经具备核心采集、处理、简报和 Web 管理能力。生产上线前建议继续补齐：
-
-- API 限流和请求审计。
-- 管理员操作审计。
-- 前端管理页编辑能力完善。
-- 真实数据源采集链路压测。
-- 前端 Playwright 冒烟测试。
