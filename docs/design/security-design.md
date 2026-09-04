@@ -103,7 +103,7 @@
 ### 6.2 Source Token
 
 - 允许管理员在后台录入 GitHub、Product Hunt、Hugging Face 等 source token。
-- source token 后端加密保存，并通过 `credential_ref` 绑定到 source。
+- source token 后端加密保存，并通过 `credential_id` 绑定到 source；如使用环境变量托管密钥，通过 `credential_env_key` 记录别名。
 - 前端只展示 token 掩码、状态和最近测试结果。
 - API 响应永不返回明文 token。
 - token 缺失时 source 状态显示 `missing_token`。

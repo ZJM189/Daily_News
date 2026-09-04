@@ -2,6 +2,19 @@
 
 基础设施目录。
 
-- `caddy/`：本地和单台云服务器反向代理配置。
+- `caddy/Caddyfile`：本地 HTTP 反向代理配置。
+- `caddy/Caddyfile.production`：生产 HTTPS 反向代理配置。
 
-生产环境需要把 `APP_DOMAIN` 设置为真实域名，并启用 Caddy 自动 HTTPS。当前 Caddyfile 默认关闭自动 HTTPS，方便本地开发。
+本地默认使用 HTTP，生产环境设置：
+
+```dotenv
+APP_ENV=production
+APP_DOMAIN=news.example.com
+CADDYFILE_PATH=./infra/caddy/Caddyfile.production
+CADDY_ACME_EMAIL=admin@example.com
+```
+
+更完整的部署、备份和运维说明见：
+
+- [部署文档](../docs/deployment.md)
+- [运维手册](../docs/operations.md)

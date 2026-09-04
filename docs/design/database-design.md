@@ -48,7 +48,7 @@
 ## 3.1 与 DDD 模型的关系
 
 - 数据库表是持久化模型，不直接等同于领域模型。
-- SQLAlchemy ORM model 放在各 bounded context 的 `infrastructure` 层。
+- SQLAlchemy ORM model 放在 `infrastructure` 层。
 - Domain entity 不继承 ORM model，也不依赖数据库 session。
 - Repository interface 由 domain/application 定义，repository implementation 由 infrastructure 实现。
 - 复杂查询可以通过 query service 或 read model 优化，但跨聚合写入必须由 application use case 编排。
@@ -173,7 +173,8 @@ erDiagram
 | `status` | source_status | not null | 状态 |
 | `url` | text |  | RSS URL 或基础 URL |
 | `query_config` | jsonb | not null default `{}` | 查询条件 |
-| `credential_ref` | varchar(120) |  | `source_credentials.id` 或环境变量密钥别名 |
+| `credential_id` | uuid | fk source_credentials.id | 后台录入的加密凭据 |
+| `credential_env_key` | varchar(120) |  | 环境变量密钥别名 |
 | `weight` | integer | not null default 50 | 来源权重 |
 | `language` | varchar(16) |  | 默认语言 |
 | `last_fetched_at` | timestamptz |  | 最近抓取时间 |
@@ -260,7 +261,7 @@ erDiagram
 | `summary_original` | text |  | 原始摘要 |
 | `content_snippet` | text |  | 正文片段 |
 | `language` | varchar(16) |  | 原文语言 |
-| `category` | category_code | not null default `other` | 分类 |
+| `category` | category_code | not null default `other` | 来源规则分类 |
 | `tags` | text[] | not null default `{}` | 标签 |
 | `metrics` | jsonb | not null default `{}` | 来源热度指标 |
 | `published_at` | timestamptz |  | 发布时间 |
@@ -288,7 +289,7 @@ erDiagram
 - `idx_items_source_published_at`
 - `idx_items_score_published_at`
 - `idx_items_tags_gin`
-- `idx_items_search_tsv`：标题、中文摘要、原始摘要、标签全文检索。
+- `idx_items_search_tsv`：标题、中文摘要、原始摘要全文检索；标签通过 `idx_items_tags_gin` 检索。
 
 ### 6.6 `topics`
 
@@ -299,7 +300,7 @@ erDiagram
 | `id` | uuid | pk | topic ID |
 | `title` | text | not null | 专题标题 |
 | `normalized_key` | varchar(128) | not null | 聚合 key |
-| `category` | category_code | not null default `other` | 分类 |
+| `category` | category_code | not null default `other` | 主条目来源规则分类 |
 | `tags` | text[] | not null default `{}` | 标签 |
 | `summary_zh` | text |  | 专题摘要 |
 | `importance_zh` | text |  | 为什么重要 |
@@ -315,7 +316,7 @@ erDiagram
 
 - `idx_topics_score_last_seen`
 - `idx_topics_category`
-- `idx_topics_normalized_key`
+- `ux_topics_normalized_key`：专题聚合键唯一，保证并发 Worker 不重复创建专题
 
 ### 6.7 `topic_items`
 
@@ -372,7 +373,7 @@ digest 快照条目表。为了保证历史简报稳定，保留标题、摘要�
 | `title_snapshot` | text | not null | 标题快照 |
 | `summary_snapshot_zh` | text |  | 摘要快照 |
 | `importance_snapshot_zh` | text |  | 重要性快照 |
-| `category_snapshot` | category_code | not null | 分类快照 |
+| `category_snapshot` | category_code | not null | 来源规则分类快照 |
 | `source_snapshot` | jsonb | not null default `{}` | 来源快照 |
 | `created_at` | timestamptz | not null | 创建时间 |
 

@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-daily_news}
       POSTGRES_USER: ${POSTGRES_USER:-daily_news}
@@ -16,7 +16,7 @@ services:
       - daily_news_internal
 
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-docker.m.daocloud.io/library/redis:7-alpine}
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -87,14 +87,15 @@ services:
       - daily_news_internal
 
   caddy:
-    image: caddy:2-alpine
+    image: ${CADDY_IMAGE:-docker.m.daocloud.io/library/caddy:2-alpine}
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
       - "443:443"
     environment:
       APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-}
     volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CADDYFILE_PATH:-./infra/caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

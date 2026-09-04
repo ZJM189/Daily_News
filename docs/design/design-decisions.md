@@ -26,7 +26,7 @@
 
 因为系统不开放公开注册，并且后续用户只能由管理员创建，所以系统首次部署时会遇到“还没有管理员可以登录”的问题。
 
-因此需要一个 bootstrap 机制创建第一个管理员账号。
+因此需要一个初始化机制创建第一个管理员账号。
 
 确认方案：
 
@@ -43,7 +43,7 @@
 
 | 类型 | 示例配置 | 说明 |
 | --- | --- | --- |
-| RSS | OpenAI Blog、Anthropic News、Google AI Blog、DeepMind Blog、Meta AI Blog | 以官方博客和高可信来源为主 |
+| RSS | OpenAI Blog、Anthropic News、Google AI Blog、DeepMind Blog、Meta AI Blog、量子位、InfoQ 中文 | 以官方博客、高可信英文源和稳定中文 AI 媒体为主 |
 | Hacker News | 查询关键词 `AI`、`LLM`、`agents`、`RAG`、`Claude`、`OpenAI` | 追踪社区讨论热度 |
 | GitHub | 查询 topic/keyword：`ai`、`llm`、`agent`、`rag`，并限制 stars、更新时间 | 发现开源项目和工具 |
 | arXiv | 分类 `cs.AI`、`cs.CL`、`cs.LG`，关键词 `large language model`、`agent`、`multimodal` | 追踪论文研究 |
@@ -63,6 +63,8 @@
 | RSS | OpenAI Blog | enabled | 官方模型与产品动态 |
 | RSS | Anthropic News | enabled | 官方模型与产品动态 |
 | RSS | Google AI Blog | enabled | 官方研究与产品动态 |
+| RSS | 量子位 | enabled | 中文 AI 热点与产业动态 |
+| RSS | InfoQ 中文 | enabled | 中文 AI 工程、架构与行业内容 |
 | Hacker News | `AI OR LLM OR agents OR RAG` | enabled | 社区讨论热点 |
 | GitHub | `ai OR llm OR agent OR rag`, stars >= 100, updated <= 30d | missing_token | 开源项目和工具趋势 |
 | arXiv | `cs.AI`, `cs.CL`, `cs.LG` | enabled | AI、NLP、机器学习论文 |

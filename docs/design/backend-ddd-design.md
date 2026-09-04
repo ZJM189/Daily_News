@@ -15,9 +15,9 @@
 
 ## 1. 设计结论
 
-后端采用 DDD 风格的模块化单体架构。
+后端采用 DDD 风格的分层单体架构。
 
-首期不拆微服务，原因是系统仍处于 0 到 1 阶段，领域边界需要在开发中验证；直接拆微服务会引入部署、事务、观测和接口治理成本。后端代码先按 bounded context 划分模块，并在模块内使用 DDD 分层，后续如果某个上下文需要独立扩展，可以从模块化单体平滑拆分。
+首期不拆微服务，也不在顶层按 bounded context 拆包。原因是系统仍处于 0 到 1 阶段，领域边界需要在开发中验证；直接把每个业务域拆成顶层模块，会让目录数量过多、早期开发成本偏高。后端代码先采用 `domain / application / infrastructure / interfaces` 大分层，业务域作为各层内部的子包逐步沉淀。
 
 ## 2. 分层架构
 
@@ -43,16 +43,18 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - `application` 编排 use case，依赖 domain 抽象和 repository/port 接口。
 - `infrastructure` 实现数据库仓储、外部 collector、LLM provider、Redis lock 等技术细节。
 - `interfaces` 暴露 HTTP API、后台任务入口和 scheduler 入口。
-- 跨 bounded context 通过 application service 或 domain event 协作，不直接访问对方内部模型。
+- 跨业务域协作通过 application service 或 domain event 完成，不直接绕过用例访问内部模型。
 
 说明：
 
 - 上图表达源码依赖方向；运行时由依赖注入把 infrastructure 实现装配给 application use case。
 - 外部系统只允许被 infrastructure adapter 访问。
 
-## 3. Bounded Context
+## 3. 业务域边界
 
-| 上下文 | 职责 | 主要对象 |
+以下业务域先作为设计边界存在，首期代码不在顶层拆目录；实现时根据需要放入对应 DDD 层内，例如 `domain/identity`、`application/digests`、`infrastructure/sources`、`interfaces/http/admin`。
+
+| 业务域 | 职责 | 主要对象 |
 | --- | --- | --- |
 | Identity & Access | 登录、会话、用户、角色权限 | User、AuthSession |
 | Source Management | 全局 source 配置、启停、抓取配置 | Source |
@@ -132,6 +134,10 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - `ScoringService`
 - `SummarizationService`
 
+当前 Worker 中的 `TopicAggregationJobExecutor` 负责应用层编排，
+领域规则由确定性专题聚合函数实现，基础设施层负责 `Topic` 和 `TopicItem` 持久化。
+`SummarizeJobExecutor` 负责 item 级中文摘要编排，LLM Provider 的协议适配和密钥解密只放在基础设施层。
+
 领域规则：
 
 - 去重优先级为 source external id、canonical URL、URL、标题归一化 hash。
@@ -149,6 +155,8 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - digest 按日期和版本保存。
 - 同一天重新生成 digest 必须创建新版本，不覆盖历史快照。
 - published digest 可以被查询，failed digest 不作为默认展示。
+
+当前 `GenerateDigestJobExecutor` 负责按日期窗口选择高分 topic，生成 `Digest` 和 `DigestItem` 快照。
 
 ### 4.6 Personalization
 
@@ -205,53 +213,32 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 api/
 ├── app/
 │   ├── main.py
-│   ├── bootstrap/                  # 应用启动、依赖注入、路由注册
-│   ├── shared/
-│   │   ├── domain/                 # Entity、ValueObject、DomainEvent、异常基类
-│   │   ├── application/            # UnitOfWork、分页、事务边界
-│   │   ├── infrastructure/         # DB、Redis、日志、配置、加密
-│   │   └── interfaces/             # HTTP 依赖、错误映射、响应模型
-│   ├── identity_access/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── source_management/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── ingestion/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── content_intelligence/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── digest_publishing/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── personalization/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   ├── llm_operations/
-│   │   ├── domain/
-│   │   ├── application/
-│   │   ├── infrastructure/
-│   │   └── interfaces/
-│   └── job_operations/
-│       ├── domain/
-│       ├── application/
-│       ├── infrastructure/
-│       └── interfaces/
+│   ├── domain/                     # Entity、ValueObject、Aggregate、领域服务、领域事件
+│   ├── application/                # Use Case、Command、Query、事务编排
+│   ├── infrastructure/             # ORM、Repository 实现、外部 API adapter、Redis、加密
+│   └── interfaces/                 # FastAPI router、HTTP schema、CLI、Worker、Scheduler
+│       ├── http/
+│       │   ├── health.py
+│       │   └── routes.py
+│       ├── cli.py
+│       ├── scheduler.py
+│       └── worker.py
 └── alembic/
+```
+
+当前仓库只放已经需要的基础文件，不提前创建空业务目录。
+
+后续业务代码按需在各层内部增加子包，例如：
+
+```text
+domain/identity
+domain/sources
+domain/contents
+domain/digests
+application/identity
+application/sources
+infrastructure/llm
+interfaces/http/admin
 ```
 
 ## 6. 每层职责

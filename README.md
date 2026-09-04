@@ -1,78 +1,245 @@
 # Daily News
 
-AI 热点信息每日汇总 Web 看板项目。
+Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动采集多来源内容，完成标准化、评分、专题聚合、中文摘要和来源规则分类，并按天生成可浏览的 AI 情报简报。
 
-当前阶段：系统设计。
+项目适合部署在单台云服务器上，通过 Docker Compose 启动前端、后端、数据库、缓存、后台任务、定时调度和反向代理。
+
+## 功能特性
+
+- 多来源采集：RSS、Hacker News、GitHub、arXiv、Product Hunt、Hugging Face。
+- AI 内容处理：标准化、热度评分、专题聚合、中文摘要、来源规则分类、每日简报生成。
+- 多厂商 LLM：支持 OpenAI-compatible 接口，可配置 OpenAI、DeepSeek、通义千问等兼容服务。
+- 多用户账号：不开放公开注册，只允许管理员创建用户、禁用用户和重置密码。
+- 个性化关注：关注关键词软加权，排除关键词硬过滤，支持分类、来源类型、屏蔽来源和保存搜索。
+- Web 工作台：今日简报、历史简报、信息库、我的关注、任务日志、用户管理、来源管理、LLM 管理、调度管理。
+- 外公网部署：Caddy 作为统一入口，对外只暴露 HTTP/HTTPS，API 和 Web 使用同源路径。
+
+## 技术栈
+
+| 模块 | 技术 |
+| --- | --- |
+| 前端 | Next.js App Router, React, TypeScript |
+| 后端 | FastAPI, Python 3.12 |
+| 架构 | DDD 风格模块化单体 |
+| 数据库 | PostgreSQL |
+| 缓存/任务状态 | Redis |
+| 调度 | APScheduler |
+| 部署 | Docker Compose, Caddy |
+
+## 快速启动
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+docker compose exec api alembic upgrade head
+docker compose exec api daily-news create-admin
+```
+
+本地访问：
+
+```text
+http://localhost
+http://localhost/api/v1/healthz
+```
+
+如果没有域名，只使用公网 IP 访问，例如 `101.251.179.93`，可以在 `.env` 中配置：
+
+```dotenv
+APP_ENV=production
+APP_DOMAIN=101.251.179.93
+APP_EXTERNAL_URL=http://101.251.179.93
+CADDYFILE_PATH=./infra/caddy/Caddyfile
+HTTP_PORT=8181
+SESSION_COOKIE_SECURE=false
+NEXT_PUBLIC_API_BASE_URL=/api/v1
+```
+
+然后访问：
+
+```text
+http://101.251.179.93:8181
+```
+
+## LLM 配置
+
+LLM Provider 通过管理员后台配置：
+
+```text
+/admin/llm
+```
+
+新增 Provider 时填写：
+
+```text
+名称：DeepSeek
+Base URL：https://api.deepseek.com/v1
+模型：deepseek-chat
+API Key：你的 API Key
+启用：是
+设为默认：是
+```
+
+当前摘要任务会使用“启用且默认”的 Provider。
+
+## 主要页面
+
+| 路径 | 说明 |
+| --- | --- |
+| `/login` | 用户登录 |
+| `/today` | 今日 AI 简报 |
+| `/history` | 按日期查看历史简报 |
+| `/library` | 全量信息库检索、筛选和详情查看 |
+| `/following` | 个性化关注流、偏好配置和反馈 |
+| `/admin/users` | 管理员创建用户、禁用用户、重置密码 |
+| `/admin/sources` | 数据源和凭据管理 |
+| `/admin/llm` | LLM Provider 管理 |
+| `/admin/jobs` | 任务日志、进度查看和一键触发完整处理链路 |
+| `/admin/scheduler` | 每日简报调度配置 |
+
+## 系统架构
+
+```mermaid
+flowchart LR
+  Browser[Browser] --> Caddy[Caddy]
+  Caddy --> Web[Next.js Web]
+  Caddy --> API[FastAPI API]
+  API --> Postgres[(PostgreSQL)]
+  API --> Redis[(Redis)]
+  Scheduler[Scheduler] --> API
+  Worker[Worker] --> Postgres
+  Worker --> Redis
+  Worker --> Sources[External Sources]
+  Worker --> LLM[OpenAI-compatible LLM]
+```
+
+容器职责：
+
+- `web`：Next.js 前端。
+- `api`：FastAPI HTTP API。
+- `worker`：执行采集、标准化、评分、聚合、摘要和简报生成等后台任务。
+- `scheduler`：按配置时间触发每日处理链路，默认展开为采集、标准化、评分、聚合、摘要和简报生成任务。
+- `postgres`：主数据库。
+- `redis`：任务状态和后续异步能力基础设施。
+- `caddy`：公网反向代理和 HTTPS 入口。
+
+## 后端目录结构
+
+```text
+api/app/
+├── domain/          # 领域对象、领域异常、领域事件
+├── application/     # 应用服务、DTO、仓储协议、用例编排
+├── infrastructure/  # 数据库模型、仓储实现、外部采集器、LLM 客户端
+└── interfaces/      # HTTP 路由、CLI、Worker、Scheduler
+```
+
+## 生产部署
+
+有域名时，建议使用 HTTPS 生产配置：
+
+```dotenv
+APP_ENV=production
+APP_DOMAIN=news.example.com
+APP_EXTERNAL_URL=https://news.example.com
+CADDYFILE_PATH=./infra/caddy/Caddyfile.production
+CADDY_ACME_EMAIL=admin@example.com
+SESSION_COOKIE_SECURE=true
+NEXT_PUBLIC_API_BASE_URL=/api/v1
+```
+
+启动：
+
+```bash
+docker compose build
+docker compose up -d
+docker compose exec api alembic upgrade head
+docker compose exec api daily-news create-admin
+```
+
+生产环境必须替换 `.env` 中的默认密码和密钥：
+
+- `POSTGRES_PASSWORD`
+- `SESSION_SECRET`
+- `CSRF_SECRET`
+- `ENCRYPTION_KEY`
+
+生成 `ENCRYPTION_KEY`：
+
+```bash
+docker compose run --rm api python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+完整说明见 [部署文档](docs/deployment.md) 和 [运维手册](docs/operations.md)。
+
+## 常用命令
+
+```bash
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs --tail=100 api
+docker compose logs --tail=100 worker
+docker compose logs --tail=100 scheduler
+
+# 执行数据库迁移
+docker compose exec api alembic upgrade head
+
+# 创建管理员
+docker compose exec api daily-news create-admin
+
+# 健康检查
+curl -f http://127.0.0.1:8181/api/v1/healthz
+```
+
+手动验证每日链路：登录管理员后台，进入 `/admin/jobs`，点击“执行完整链路”。系统会创建 `collect → normalize → rank → dedupe → summarize → generate_digest` 六个后台任务，worker 会按顺序消费。
+
+## 备份
+
+```bash
+mkdir -p backups
+docker compose exec -T postgres pg_dump -U daily_news -d daily_news -Fc > backups/daily_news_$(date +%Y%m%d_%H%M%S).dump
+```
+
+恢复流程见 [运维手册](docs/operations.md)。
+
+## 开发验证
+
+后端：
+
+```bash
+cd api
+. .venv/bin/activate
+ruff check app tests
+pytest -q
+```
+
+前端：
+
+```bash
+cd web
+npm run build
+```
 
 ## 文档
 
-- [AI 热点信息每日汇总项目调研](docs/ai-daily-news-research.md)
-- [AI 热点信息每日汇总项目需求分析](docs/requirements-analysis.md)
+- [项目调研](docs/ai-daily-news-research.md)
+- [需求分析](docs/requirements-analysis.md)
 - [需求说明书](docs/requirements/requirements-specification.md)
-- [业务流程图](docs/requirements/business-flow.md)
-- [低保真原型图](docs/requirements/prototype.md)
-- [需求评审记录](docs/requirements/requirements-review-record.md)
-- [产品需求文档 PRD](docs/product/prd.md)
-- [产品原型](docs/product/product-prototype.md)
-- [页面流程](docs/product/page-flow.md)
-- [系统设计文档目录](docs/design/README.md)
-- [系统架构设计文档](docs/design/system-architecture.md)
-- [后端 DDD 设计文档](docs/design/backend-ddd-design.md)
-- [系统设计决策记录](docs/design/design-decisions.md)
-- [数据库设计文档](docs/design/database-design.md)
+- [产品需求文档](docs/product/prd.md)
+- [系统架构设计](docs/design/system-architecture.md)
+- [后端 DDD 设计](docs/design/backend-ddd-design.md)
+- [数据库设计](docs/design/database-design.md)
 - [API 接口文档](docs/design/api-design.md)
-- [安全设计文档](docs/design/security-design.md)
+- [安全设计](docs/design/security-design.md)
+- [部署文档](docs/deployment.md)
+- [运维手册](docs/operations.md)
 
-## 阶段进度
+## 当前状态
 
-- 已完成：项目调研、需求分析、产品设计。
-- 当前进行：系统设计，包括系统架构、数据库设计、API 接口设计和安全设计。
-- 下一阶段：开发阶段，包括工程骨架、数据库迁移、后端 API、前端页面和后台任务。
+项目处于 MVP 可运行原型阶段，已经具备核心采集、处理、简报和 Web 管理能力。生产上线前建议继续补齐：
 
-## 初步方向
-
-本项目计划建设一个面向外公网部署的多用户 AI 情报聚合与每日简报平台，核心能力包括：
-
-- 多来源采集：RSS、Hacker News、GitHub、arXiv、Product Hunt、Hugging Face 等。
-- 信息处理：去重、分类、热度评分、中文摘要。
-- 多厂商 LLM：通过统一 provider 接口兼容不同模型服务。
-- 前端工作台：登录、今日简报、历史简报、信息库、我的关注、详情抽屉、任务日志、用户管理。
-- 个性化规则：关注关键词采用软加权，关注分类作为默认筛选并轻量加权，关注来源类型作为默认筛选，排除关键词、关闭来源类型和屏蔽来源采用硬过滤。
-- 账号管理：不开放公开注册，用户只能由管理员创建。
-- 用户边界：普通用户不能添加外部 URL 信息源，也不能发起任意外部平台实时检索。
-- 部署形态：单台云服务器，通过 HTTPS 反向代理对外提供 Web 和 API。
-- 管理配置：外部 API token 允许管理员后台录入，后端加密保存。
-- 调度配置：Digest 默认北京时间每天 08:00 自动生成，时间可配置。
-- 内容发布：每日 digest 自动发布到 Web 看板。
-- 后续扩展：Email、RSS、Telegram、飞书、企业微信等推送渠道。
-
-## 建议技术栈
-
-- 后端：FastAPI
-- 后端架构：DDD 风格模块化单体
-- 前端：Next.js
-- 数据库：PostgreSQL
-- 缓存/任务状态：Redis
-- 调度：APScheduler 起步，后续可升级到 Celery 或 Dramatiq
-
-## 工程结构
-
-```text
-daily_news/
-├── api/      # FastAPI 后端，DDD 模块化单体
-├── web/      # Next.js App Router 前端
-├── infra/    # Caddy 等基础设施配置
-└── docs/     # 调研、需求、产品和系统设计文档
-```
-
-## 本地启动
-
-1. 复制环境变量模板：`cp .env.example .env`
-2. 启动基础服务和应用：`docker compose up --build`
-3. 访问 Web：`http://localhost`
-4. 访问 API 健康检查：`http://localhost/api/v1/healthz`
-
-首个管理员账号后续通过后端命令 `daily-news create-admin` 创建。
-
-如果直接暴露 Next.js 开发服务器给外网预览，可在启动前设置
-`NEXT_ALLOWED_DEV_ORIGINS=你的域名或服务器IP`，避免 Next.js 16 拦截开发态 HMR 请求。
+- API 限流和请求审计。
+- 管理员操作审计。
+- 前端管理页编辑能力完善。
+- 真实数据源采集链路压测。
+- 前端 Playwright 冒烟测试。

@@ -1,0 +1,109 @@
+import type { Digest } from "../../lib/types";
+
+const categoryLabels: Record<string, string> = {
+  model_company: "模型公司",
+  open_source: "开源项目",
+  research_paper: "研究论文",
+  product_launch: "产品发布",
+  community: "社区动态",
+  industry_funding: "产业融资",
+  other: "其他"
+};
+
+const sourceTypeLabels: Record<string, string> = {
+  rss: "RSS",
+  hacker_news: "Hacker News",
+  github: "GitHub",
+  arxiv: "arXiv",
+  product_hunt: "Product Hunt",
+  hugging_face: "Hugging Face"
+};
+
+export function DigestView({ digest }: { digest: Digest | null }) {
+  if (!digest) {
+    return (
+      <section className="emptyState">
+        <h2>暂无简报</h2>
+        <p>当前日期还没有发布的简报。可以在任务日志中触发采集、评分、聚合和生成任务。</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="digestStack">
+      <section className="pageHeader">
+        <div>
+          <p className="eyebrow">Version {digest.version}</p>
+          <h1>{digest.title}</h1>
+          <p className="description">{digest.overview_zh || "本期暂无概览。"}</p>
+        </div>
+        <div className="statGrid compactStats">
+          <Stat label="专题" value={digest.stats.topic_count ?? 0} />
+          <Stat label="条目" value={digest.stats.item_count ?? 0} />
+          <Stat label="来源" value={digest.stats.source_count ?? 0} />
+        </div>
+      </section>
+
+      <section className="digestList">
+        {digest.items.map((item) => {
+          const sourceUrl = originalUrl(item.source_snapshot);
+
+          return (
+            <article key={item.id} className="digestItem">
+              <div className="rankPill">{item.rank}</div>
+              <div className="digestBody">
+                <div className="digestMeta">
+                  <span>{sourceLabel(item.source_snapshot) || categoryLabels[item.category_snapshot] || item.category_snapshot}</span>
+                  <span>分数 {item.score_snapshot.toFixed(2)}</span>
+                  <span>来源 {String(item.source_snapshot.source_count ?? 0)}</span>
+                </div>
+                <h2>{item.title_snapshot}</h2>
+                <p>{item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}</p>
+                <p className="mutedText">
+                  {item.importance_snapshot_zh || "重要性说明将在摘要任务完成后补齐。"}
+                </p>
+                {sourceUrl ? (
+                  <a className="linkButton compactLink" href={sourceUrl} target="_blank" rel="noreferrer">
+                    查看原文
+                  </a>
+                ) : null}
+              </div>
+            </article>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="statItem">
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function sourceLabel(sourceSnapshot: Record<string, unknown>) {
+  const sourceName = stringValue(
+    sourceSnapshot.primary_source_name ?? sourceSnapshot.source_name
+  );
+  if (sourceName) return sourceName;
+
+  const sourceType = stringValue(
+    sourceSnapshot.primary_source_type ?? sourceSnapshot.source_type
+  );
+  if (!sourceType) return null;
+  return sourceTypeLabels[sourceType] || sourceType;
+}
+
+function originalUrl(sourceSnapshot: Record<string, unknown>) {
+  return stringValue(
+    sourceSnapshot.primary_url ?? sourceSnapshot.url ?? sourceSnapshot.canonical_url
+  );
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}

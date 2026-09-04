@@ -1,4 +1,5 @@
-FROM node:22-alpine AS base
+ARG NODE_IMAGE=docker.m.daocloud.io/library/node:22-alpine
+FROM ${NODE_IMAGE} AS base
 
 FROM base AS deps
 WORKDIR /app

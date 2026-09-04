@@ -105,10 +105,10 @@ flowchart LR
 职责：
 
 - 从启用 source 拉取原始内容。
-- 标准化 raw item。
-- 去重、聚合 topic、计算 score。
-- 调用 LLM provider 生成中文摘要、标签和“为什么重要”。
-- 生成和发布每日 digest。
+- 标准化 raw item。当前已实现 RSS collector 到 `raw_items`、`raw_items` 到 `items` 的最小闭环。
+- 去重、聚合 topic、计算 score。当前已实现 item 全局启发式评分和确定性 topic 聚合。
+- 调用 LLM provider 生成中文摘要、标签和“为什么重要”。当前已实现 item 级摘要任务。
+- 生成和发布每日 digest。当前已实现按日期窗口生成 topic 快照版本。
 - 写入 job run、错误详情和处理状态。
 
 ### 4.4 Scheduler 服务
@@ -121,33 +121,30 @@ flowchart LR
 
 首期可以将 scheduler 和 worker 放在同一个进程中运行；生产部署建议拆成两个进程，避免长任务阻塞调度。
 
-## 5. 后端 DDD 模块划分
+## 5. 后端 DDD 分层划分
 
 ```text
 api/
 ├── app/
 │   ├── main.py
-│   ├── bootstrap/                  # 应用启动、依赖注入、路由注册
-│   ├── shared/                     # 通用领域基类、配置、事务、日志、错误映射
-│   ├── identity_access/            # 用户、登录、会话、角色权限
-│   ├── source_management/          # source 管理和采集配置
-│   ├── ingestion/                  # collector、raw item 入库、采集任务入口
-│   ├── content_intelligence/       # item、topic、去重、评分、摘要
-│   ├── digest_publishing/          # digest 生成、版本、发布、历史快照
-│   ├── personalization/            # 我的关注、保存搜索、用户反馈、user score
-│   ├── llm_operations/             # provider、prompt、调用日志
-│   └── job_operations/             # job run、重跑、任务状态
+│   ├── domain/                     # Entity、Value Object、Aggregate、Domain Service、Repository Interface
+│   ├── application/                # Use Case、Command、Query、事务编排
+│   ├── infrastructure/             # ORM、Repository 实现、外部 API adapter、Redis、加密
+│   └── interfaces/                 # FastAPI router、HTTP schema、CLI、Worker、Scheduler
 └── alembic/
 ```
 
-每个 bounded context 内部按 DDD 分层：
+首期采用大 DDD 分层结构。业务域不作为顶层目录提前拆开，而是在各层内部逐步形成子包：
 
 ```text
-<bounded_context>/
-├── domain/           # Entity、Value Object、Aggregate、Domain Service、Repository Interface
-├── application/      # Use Case、Command、Query、事务编排
-├── infrastructure/   # ORM、Repository 实现、外部 API adapter、Redis、加密
-└── interfaces/       # FastAPI router、HTTP schema、后台任务入口
+domain/identity
+domain/sources
+domain/contents
+domain/digests
+application/identity
+application/sources
+infrastructure/llm
+interfaces/http/admin
 ```
 
 依赖原则：
@@ -212,8 +209,8 @@ sequenceDiagram
     W->>X: fetch source items
     W->>DB: save raw_items
     W->>DB: normalize into items
-    W->>DB: dedupe by URL/external_id/title_hash
-    W->>DB: aggregate topics
+    W->>DB: dedupe raw items by URL/external_id/title_hash
+    W->>DB: aggregate ranked items into topics
     W->>DB: calculate scores
     W->>L: summarize high score candidates
     L-->>W: Chinese summary / importance / tags
@@ -250,7 +247,12 @@ Collector.collect(source, since) -> list[RawCollectedItem]
 
 | 类型 | 主要输入 | 关键风险 |
 | --- | --- | --- |
-| RSS | feed URL | feed 结构差异、编码问题 |
+| RSS | feed URL | 已实现最小版本；关键风险是 feed 结构差异、编码问题、外部网络不稳定 |
+| Hacker News | Algolia/HN API | API 限流、去重 |
+| GitHub | Search/Trending 配置 | token 限流、查询噪声 |
+| arXiv | query 配置 | 学科分类、摘要质量 |
+| Product Hunt | API token | token 获取、限流 |
+| Hugging Face | feed/API | 数据结构变化、限流 |
 | Hacker News | query、tag、时间范围 | rate limit、重复讨论 |
 | GitHub | query、语言、star 阈值 | rate limit、Search API 结果波动 |
 | arXiv | query、分类、时间范围 | 分类映射、论文摘要较长 |

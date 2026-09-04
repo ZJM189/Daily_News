@@ -156,7 +156,8 @@
 ```json
 {
   "data": {
-    "date": "2026-09-02",
+    "id": "uuid",
+    "digest_date": "2026-09-02",
     "version": 1,
     "status": "published",
     "title": "2026-09-02 AI 热点简报",
@@ -166,8 +167,26 @@
       "item_count": 24,
       "source_count": 48
     },
-    "topics": [],
-    "items": []
+    "items": [
+      {
+        "id": "uuid",
+        "item_type": "topic",
+        "rank": 1,
+        "score_snapshot": 85.5,
+        "title_snapshot": "OpenAI 发布新模型",
+        "summary_snapshot_zh": "中文摘要",
+        "importance_snapshot_zh": "重要性说明",
+        "category_snapshot": "model_company",
+        "source_snapshot": {
+          "source_count": 2,
+          "primary_item_id": "uuid",
+          "primary_source_type": "rss",
+          "primary_source_name": "OpenAI News",
+          "primary_url": "https://example.com/news",
+          "canonical_url": "https://example.com/news"
+        }
+      }
+    ]
   }
 }
 ```
@@ -176,6 +195,7 @@
 
 - `view=following` 时后端根据当前用户规则计算个性化结果。
 - 无 digest 时返回 `data: null`，前端展示空状态。
+- 当前实现返回最新 published 版本及 `digest_items` 快照；个性化过滤后续在该接口上扩展。
 
 ### 5.2 历史简报
 
@@ -199,6 +219,7 @@
 
 - 历史简报只查询当天 digest 快照。
 - 不返回未入选 digest 的全量内容。
+- 当前实现支持按 `version` 查询，不传则返回当天最新 published 版本。
 
 ## 6. 信息库与详情接口
 
@@ -483,11 +504,13 @@
 
 查询参数：
 
-- `type`
-- `status`
-- `keyword`
-- `page`
-- `page_size`
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `type` | string | 否 | `rss`、`hacker_news`、`github`、`arxiv`、`product_hunt`、`hugging_face` |
+| `status` | string | 否 | `enabled`、`disabled`、`missing_token`、`error` |
+| `keyword` | string | 否 | 按名称或 URL 模糊搜索 |
+| `page` | integer | 否 | 默认 1 |
+| `page_size` | integer | 否 | 默认 20，最大 100 |
 
 ### 9.2 创建来源
 
@@ -501,7 +524,8 @@
   "type": "rss",
   "url": "https://openai.com/news/rss.xml",
   "query_config": {},
-  "credential_ref": null,
+  "credential_id": null,
+  "credential_env_key": null,
   "weight": 90,
   "language": "en",
   "status": "enabled"
@@ -511,12 +535,17 @@
 说明：
 
 - 只有管理员可调用。
-- URL 必须经过 SSRF 防护校验。
 - 普通用户不能创建 source。
+- 首期已实现配置落库；URL SSRF 防护在 collector 实际请求外部 URL 前执行。
 
 ### 9.3 更新来源
 
 `PATCH /api/v1/admin/sources/{source_id}`
+
+说明：
+
+- 支持更新 `name`、`status`、`url`、`query_config`、`credential_id`、`credential_env_key`、`weight`、`language`。
+- `credential_id`、`credential_env_key`、`url`、`language` 传 `null` 表示清空。
 
 ### 9.4 手动抓取单个来源
 
@@ -533,9 +562,21 @@
 }
 ```
 
+状态：待实现，进入任务管理与 collector 阶段后落地。
+
 ### 9.5 Source Token 列表
 
 `GET /api/v1/admin/source-credentials`
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `source_type` | string | 否 | 来源类型 |
+| `status` | string | 否 | `active`、`disabled`、`missing`、`error` |
+| `keyword` | string | 否 | 按名称模糊搜索 |
+| `page` | integer | 否 | 默认 1 |
+| `page_size` | integer | 否 | 默认 20，最大 100 |
 
 说明：
 
@@ -552,7 +593,8 @@
 {
   "name": "GitHub Token",
   "source_type": "github",
-  "secret": "ghp_***"
+  "secret": "ghp_***",
+  "status": "active"
 }
 ```
 
@@ -565,9 +607,16 @@
 
 `PATCH /api/v1/admin/source-credentials/{credential_id}`
 
+说明：
+
+- 支持更新 `name`、`secret`、`status`。
+- `secret` 传入后会覆盖原密钥；响应仍只返回 `secret_masked`。
+
 ### 9.8 测试 Source Token
 
 `POST /api/v1/admin/source-credentials/{credential_id}/test`
+
+状态：待实现，进入各 source connector 阶段后落地。
 
 ## 10. 管理员任务接口
 
@@ -577,13 +626,47 @@
 
 查询参数：
 
-- `job_type`
-- `status`
-- `source_id`
-- `date_from`
-- `date_to`
-- `page`
-- `page_size`
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `job_type` | string | 否 | `collect`、`normalize`、`dedupe`、`rank`、`summarize`、`generate_digest`、`publish_digest` |
+| `status` | string | 否 | `pending`、`running`、`success`、`failed`、`partial_success`、`cancelled` |
+| `source_id` | uuid | 否 | 来源 ID |
+| `created_from` | datetime | 否 | 创建时间起 |
+| `created_to` | datetime | 否 | 创建时间止 |
+| `page` | integer | 否 | 默认 1 |
+| `page_size` | integer | 否 | 默认 20，最大 100 |
+
+响应字段：
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "job_type": "collect",
+      "trigger_type": "manual",
+      "status": "pending",
+      "source_id": null,
+      "parent_job_run_id": null,
+      "created_by": "uuid",
+      "params": {},
+      "total_count": 0,
+      "success_count": 0,
+      "failure_count": 0,
+      "error_message": null,
+      "error_detail": null,
+      "started_at": null,
+      "ended_at": null,
+      "created_at": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "page_size": 20,
+    "total": 1
+  }
+}
+```
 
 ### 10.2 任务详情
 
@@ -592,6 +675,12 @@
 ### 10.3 重跑任务
 
 `POST /api/v1/admin/jobs/{job_run_id}/retry`
+
+说明：
+
+- 当前实现会创建一条新的 `pending` job，`trigger_type=retry`。
+- 新 job 的 `parent_job_run_id` 指向原任务。
+- `collect` 类型 retry 已可由 worker 消费执行；其他任务类型的执行逻辑待后续阶段实现。
 
 ### 10.4 触发全量采集
 
@@ -602,11 +691,48 @@
 ```json
 {
   "source_types": ["rss", "hacker_news", "github", "arxiv", "product_hunt", "hugging_face"],
+  "source_id": null,
   "since": "2026-09-01T00:00:00Z"
 }
 ```
 
-### 10.5 生成 Digest
+说明：
+
+- 当前实现会创建一条 `job_type=collect`、`trigger_type=manual`、`status=pending` 的任务记录。
+- `source_types` 为空数组表示 worker 按所有启用 source 处理。
+- `source_id` 可用于指定单个 source。
+- RSS collector 已实现，执行后写入 `raw_items`。
+- GitHub、Hacker News、arXiv、Product Hunt、Hugging Face collector 待实现。
+- 单个 source 失败不会中断整个 collect job，会写入任务错误信息和 source 最近错误。
+
+### 10.5 触发完整每日链路
+
+`POST /api/v1/admin/jobs/daily-pipeline`
+
+请求：
+
+```json
+{
+  "source_types": [],
+  "digest_date": "2026-09-02",
+  "exclude_recent_digest_days": 3,
+  "normalize_limit": 5000,
+  "rank_limit": 5000,
+  "topic_limit": 1000,
+  "summarize_limit": 100,
+  "min_score": 60
+}
+```
+
+说明：
+
+- 当前实现会按顺序创建 6 条 `manual`、`pending` 任务：`collect`、`normalize`、`rank`、`dedupe`、`summarize`、`generate_digest`。
+- `source_types` 为空数组表示采集所有启用 source。
+- `digest_date` 不传时使用服务端默认时区当天日期。
+- worker 会按固定优先级领取任务，适合管理员在 `/admin/jobs` 手动验证完整处理链路。
+- 该接口只创建任务，不在 HTTP 请求内同步执行采集、LLM 摘要或简报生成。
+
+### 10.6 生成 Digest
 
 `POST /api/v1/admin/jobs/generate-digest`
 
@@ -614,18 +740,125 @@
 
 ```json
 {
-  "digest_date": "2026-09-02"
+  "digest_date": "2026-09-02",
+  "exclude_recent_digest_days": 3
 }
 ```
 
 说明：
 
-- 生成新版本 digest。
-- 不覆盖旧版本历史快照。
+- 当前实现会创建一条 `job_type=generate_digest`、`trigger_type=manual`、`status=pending` 的任务记录。
+- worker 会按 `digest_date` 和 `timezone` 计算当天 `collected_at` 窗口，默认时区为 `Asia/Shanghai`。
+- `exclude_recent_digest_days` 默认 3，用于排除最近几天已经进入过简报的 topic，避免连续重复上榜。
+- 同一天重复触发生成任务时，也会沿用该排重规则。
+- 当前生成逻辑从当天窗口内的高分 `topics` 生成 `digests` 和 `digest_items` 快照。
+- 生成结果直接发布为 `published` 状态。
+- 同一天重复生成会创建新版本，不覆盖旧版本历史快照。
+- `digest_items` 当前以 `topic` 为快照目标，记录标题、分数、来源规则分类、摘要、重要性说明、来源数、主来源名称和原文链接。
 
-### 10.6 获取调度配置
+### 10.7 触发 RawItem 标准化
+
+`POST /api/v1/admin/jobs/normalize`
+
+请求：
+
+```json
+{
+  "source_id": null,
+  "limit": 5000
+}
+```
+
+说明：
+
+- 当前实现会创建一条 `job_type=normalize`、`trigger_type=manual`、`status=pending` 的任务记录。
+- worker 会读取 `status=collected` 的 `raw_items`，生成 `items`。
+- 默认批量大小为 5000，避免单次只处理到早期同源数据。
+- 标准化会写入 `normalized_title`、`title_hash`、`summary_original`、`content_snippet`、来源规则分类和 `status=normalized`。
+- 已存在的重复条目不重复写入 `items`，对应 `raw_items` 标记为 `deduped`。
+- 评分、专题聚合和中文摘要仍由后续 rank/topic/summarize 阶段处理。
+
+### 10.8 触发 Item 评分
+
+`POST /api/v1/admin/jobs/rank`
+
+请求：
+
+```json
+{
+  "source_id": null,
+  "limit": 500
+}
+```
+
+说明：
+
+- 当前实现会创建一条 `job_type=rank`、`trigger_type=manual`、`status=pending` 的任务记录。
+- worker 会读取 `status=normalized` 的 `items`，计算 `score` 和 `score_breakdown`。
+- 评分口径为启发式规则：来源权重、新鲜度、AI 关键词命中、内容完整度。
+- 执行成功后 item 状态更新为 `ranked`。
+- 该分数是全局分数，不受用户“我的关注”影响；用户关注的软加权在个性化视图阶段另算。
+
+### 10.9 触发专题聚合
+
+`POST /api/v1/admin/jobs/dedupe`
+
+请求：
+
+```json
+{
+  "source_id": null,
+  "limit": 1000
+}
+```
+
+说明：
+
+- 当前 `dedupe` 任务表示专题聚合，不是删除原始信息。
+- worker 只读取 `status=ranked` 的 `items`。
+- 聚合使用确定性候选键：规范化标题、去停用词后的关键词组合、规范化 canonical URL。
+- 任一候选键相同的条目归入同一 `topic`，并在 `topic_items` 中建立关联。
+- 专题主条目取全局分数最高的条目；专题分数叠加条目数量和来源多样性奖励。
+- 重复执行会更新已有专题并幂等更新关联，不删除 `items` 或历史 digest。
+- 首期不使用向量模型或语义聚类，后续可在不改变专题接口的前提下替换聚合策略。
+
+### 10.10 触发中文摘要
+
+`POST /api/v1/admin/jobs/summarize`
+
+请求：
+
+```json
+{
+  "source_id": null,
+  "limit": 100,
+  "min_score": 60
+}
+```
+
+说明：
+
+- 当前实现会创建一条 `job_type=summarize`、`trigger_type=manual`、`status=pending` 的任务记录。
+- worker 会读取 `status=ranked`、`summary_zh is null` 且 `score >= min_score` 的高分条目。
+- 摘要使用后台配置的默认启用 OpenAI-compatible LLM Provider。
+- LLM 必须返回 JSON：`summary_zh`、`importance_zh`、`tags`、`confidence`。
+- 成功后写入 `items.summary_zh`、`importance_zh`、`tags`、`summary_confidence`、`llm_provider_id`、`llm_model`、`prompt_version`，并将 item 状态置为 `summarized`。
+- `items.category` 不由 LLM 判断；分类来自 source/source URL/source name 的规则映射。
+- 每次调用都会写入 `llm_call_logs`，记录成功、失败或 schema error。
+- 没有默认启用 Provider 时，任务失败且不修改任何 item。
+
+### 10.11 获取调度配置
 
 `GET /api/v1/admin/scheduler/configs`
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `job_type` | string | 否 | 任务类型 |
+| `enabled` | boolean | 否 | 是否启用 |
+| `page` | integer | 否 | 默认 1 |
+| `page_size` | integer | 否 | 默认 20，最大 100 |
 
 响应示例：
 
@@ -644,7 +877,7 @@
 }
 ```
 
-### 10.7 更新调度配置
+### 10.12 更新调度配置
 
 `PATCH /api/v1/admin/scheduler/configs/{config_id}`
 
@@ -660,25 +893,75 @@
 
 说明：
 
-- Digest 默认北京时间每天 08:00 生成。
+- Digest 处理链路默认北京时间每天 08:00 触发。
 - 修改调度配置只影响后续任务，不修改历史 digest。
+- `cron_expression` 使用 5 段 crontab 格式，例如 `0 8 * * *`。
+- `timezone` 使用 IANA 时区，例如 `Asia/Shanghai`。
+- scheduler 进程启动时加载启用的调度配置，并按配置创建 APScheduler Cron 任务。
+- 调度时间到达后创建 `scheduled` 状态的完整 pipeline jobs：`collect`、`normalize`、`rank`、`dedupe`、`summarize`、`generate_digest`，由 worker 负责按顺序实际执行。
+- scheduler 每 60 秒刷新一次配置，因此管理员修改启停状态、Cron 或时区后无需重启容器。
+
+### 10.13 初始化默认调度配置和默认来源
+
+命令：
+
+```bash
+daily-news init-scheduler-configs
+daily-news seed-default-sources
+```
+
+说明：
+
+- 两个命令都是幂等命令，不覆盖已有配置。
+- 用于空库或老环境补齐默认每日处理链路调度配置。
+- `seed-default-sources` 首期写入默认 RSS source。
+
+### 10.14 单次执行 Worker
+
+命令：
+
+```bash
+daily-news worker-once
+```
+
+说明：
+
+- 优先从最早的 `pending collect` job 领取一条执行。
+- 没有 `collect` 任务时，领取最早的 `pending normalize` job 执行。
+- 没有 `normalize` 任务时，领取最早的 `pending rank` job 执行。
+- 没有 `rank` 任务时，领取最早的 `pending dedupe` job 执行。
+- 没有 `dedupe` 任务时，领取最早的 `pending summarize` job 执行。
+- `collect` 执行 RSS collector 并写入 `raw_items`。
+- `normalize` 将 `raw_items` 标准化写入 `items`。
+- `rank` 为 `items` 写入全局 `score` 和 `score_breakdown`。
+- `dedupe` 根据确定性候选键聚合 `topics` 和 `topic_items`。
+- `summarize` 调用默认 LLM Provider 写入中文摘要和重要性说明。
+- 正常生产环境使用 `worker` 服务循环执行。
 
 ## 11. 管理员 LLM Provider 接口
 
 ### 11.1 Provider 列表
 
-`GET /api/v1/admin/llm/providers`
+`GET /api/v1/admin/llm-providers`
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `enabled` | boolean | 否 | 是否启用 |
+| `keyword` | string | 否 | 按名称模糊搜索 |
+| `page` | integer | 否 | 默认 1 |
+| `page_size` | integer | 否 | 默认 20，最大 100 |
 
 ### 11.2 创建 Provider
 
-`POST /api/v1/admin/llm/providers`
+`POST /api/v1/admin/llm-providers`
 
 请求：
 
 ```json
 {
   "name": "DeepSeek",
-  "type": "openai_compatible",
   "base_url": "https://api.deepseek.com/v1",
   "model": "deepseek-chat",
   "api_key": "sk-***",
@@ -689,19 +972,30 @@
 }
 ```
 
-响应不返回 `api_key` 明文，只返回 `api_key_masked`。
+说明：
+
+- 首期只支持 OpenAI-compatible 协议，后端写入 `type=openai_compatible`。
+- 响应不返回 `api_key` 明文，只返回 `api_key_masked`。
+- `is_default=true` 时会自动取消其他 provider 的默认状态。
 
 ### 11.3 更新 Provider
 
-`PATCH /api/v1/admin/llm/providers/{provider_id}`
+`PATCH /api/v1/admin/llm-providers/{provider_id}`
+
+说明：
+
+- 支持更新 `name`、`base_url`、`model`、`api_key`、`timeout_seconds`、`retry_count`、`enabled`、`is_default`。
+- `api_key` 传 `null` 表示清空密钥；不传表示保持原密钥。
 
 ### 11.4 测试 Provider
 
-`POST /api/v1/admin/llm/providers/{provider_id}/test`
+`POST /api/v1/admin/llm-providers/{provider_id}/test`
+
+状态：待实现，进入 LLM adapter 阶段后落地。
 
 ### 11.5 设置默认 Provider
 
-`POST /api/v1/admin/llm/providers/{provider_id}/set-default`
+`POST /api/v1/admin/llm-providers/{provider_id}/set-default`
 
 ## 12. 健康检查接口
 
