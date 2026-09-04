@@ -557,12 +557,101 @@ h2 {
   padding: 18px;
 }
 
-.detailHeader,
-.paginationBar {
+.detailHeader {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.paginationBar {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.9fr) minmax(320px, auto) minmax(190px, 0.8fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px 16px;
+}
+
+.paginationInfo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.paginationInfo strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.paginationInfo span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.paginationPages,
+.paginationJump,
+.paginationJump label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.paginationPages {
+  justify-content: center;
+}
+
+.paginationPages button,
+.paginationJump button {
+  min-height: 36px;
+}
+
+.paginationPage {
+  min-width: 38px;
+  padding: 0 10px;
+}
+
+.paginationPage.active,
+.paginationPage.active:disabled {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  opacity: 1;
+}
+
+.paginationEllipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.paginationJump {
+  justify-content: flex-end;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.paginationJump input {
+  width: 72px;
+  min-height: 36px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.paginationJump button {
+  min-height: 36px;
+  padding: 0 12px;
 }
 
 .detailPanel p {
@@ -965,5 +1054,21 @@ tr:last-child td {
   .detailPanel,
   .preferencePanel {
     position: static;
+  }
+
+  .paginationBar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .paginationInfo {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .paginationPages,
+  .paginationJump {
+    justify-content: flex-start;
+    width: 100%;
   }
 }

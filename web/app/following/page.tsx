@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { PaginationBar } from "../components/PaginationBar";
 import {
   createFeedback,
   getUserPreference,
@@ -292,24 +293,7 @@ export default function FollowingPage() {
                 </article>
               ))
             : null}
-          <div className="paginationBar">
-            <button
-              className="ghostButton"
-              type="button"
-              disabled={loading || meta.page <= 1}
-              onClick={() => void load(meta.page - 1)}
-            >
-              上一页
-            </button>
-            <button
-              className="ghostButton"
-              type="button"
-              disabled={loading || meta.page >= totalPages}
-              onClick={() => void load(meta.page + 1)}
-            >
-              下一页
-            </button>
-          </div>
+          <PaginationBar meta={meta} loading={loading} onPageChange={load} />
         </div>
       </section>
     </main>

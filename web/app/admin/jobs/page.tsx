@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PaginationBar } from "../../components/PaginationBar";
 import { apiPost, listJobs, triggerDailyPipelineJob } from "../../../lib/api";
-import type { JobRun } from "../../../lib/types";
+import type { JobRun, PageMeta } from "../../../lib/types";
 
 const jobActions = [
   { label: "采集", path: "/api/v1/admin/jobs/collect", body: { source_types: [] } },
@@ -14,6 +15,7 @@ const jobActions = [
 
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<JobRun[]>([]);
+  const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [runningAction, setRunningAction] = useState<string | null>(null);
@@ -22,14 +24,16 @@ export default function AdminJobsPage() {
 
   const activeCount = jobs.filter((job) => job.status === "pending" || job.status === "running").length;
 
-  async function refreshJobs(options: { silent?: boolean } = {}) {
+  async function refreshJobs(nextPage = meta.page, options: { silent?: boolean } = {}) {
     if (options.silent) {
       setRefreshing(true);
     } else {
       setLoading(true);
     }
     try {
-      setJobs(await listJobs());
+      const result = await listJobs(nextPage);
+      setJobs(result.data);
+      setMeta(result.meta);
       setLastRefreshedAt(new Date());
     } finally {
       if (options.silent) {
@@ -47,7 +51,7 @@ export default function AdminJobsPage() {
       const createdJob = await apiPost<JobRun>(action.path, action.body);
       setJobs((currentJobs) => [createdJob, ...currentJobs.filter((job) => job.id !== createdJob.id)]);
       setMessage(`${action.label}任务已创建，worker 会自动执行`);
-      await refreshJobs();
+      await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
     } finally {
@@ -66,7 +70,7 @@ export default function AdminJobsPage() {
         ...currentJobs.filter((job) => !createdJobIds.has(job.id))
       ]);
       setMessage(`完整链路任务已创建：${createdJobs.map((job) => job.job_type).join(" → ")}`);
-      await refreshJobs();
+      await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
     } finally {
@@ -82,7 +86,7 @@ export default function AdminJobsPage() {
       const createdJob = await apiPost<JobRun>("/api/v1/admin/jobs/generate-digest", { digest_date: today });
       setJobs((currentJobs) => [createdJob, ...currentJobs.filter((job) => job.id !== createdJob.id)]);
       setMessage("生成简报任务已创建，worker 会自动执行");
-      await refreshJobs();
+      await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
     } finally {
@@ -91,7 +95,7 @@ export default function AdminJobsPage() {
   }
 
   useEffect(() => {
-    void refreshJobs();
+    void refreshJobs(1);
   }, []);
 
   useEffect(() => {
@@ -100,11 +104,11 @@ export default function AdminJobsPage() {
     }
 
     const timer = window.setInterval(() => {
-      void refreshJobs({ silent: true });
+      void refreshJobs(meta.page, { silent: true });
     }, 3000);
 
     return () => window.clearInterval(timer);
-  }, [activeCount]);
+  }, [activeCount, meta.page]);
 
   return (
     <main className="pageSurface">
@@ -121,7 +125,7 @@ export default function AdminJobsPage() {
           <button type="button" disabled={runningAction !== null} onClick={() => void triggerDailyPipeline()}>
             {runningAction === "完整链路" ? "创建中" : "一键执行完整链路"}
           </button>
-          <button className="ghostButton" type="button" onClick={() => void refreshJobs()}>
+          <button className="ghostButton" type="button" onClick={() => void refreshJobs(meta.page)}>
             刷新
           </button>
         </div>
@@ -147,19 +151,19 @@ export default function AdminJobsPage() {
 
       <section className="jobSummaryGrid">
         <div className="metricTile">
-          <span>等待执行</span>
+          <span>任务总数</span>
+          <strong>{meta.total}</strong>
+        </div>
+        <div className="metricTile">
+          <span>本页等待</span>
           <strong>{jobs.filter((job) => job.status === "pending").length}</strong>
         </div>
         <div className="metricTile">
-          <span>正在运行</span>
+          <span>本页运行</span>
           <strong>{jobs.filter((job) => job.status === "running").length}</strong>
         </div>
         <div className="metricTile">
-          <span>最近成功</span>
-          <strong>{jobs.filter((job) => job.status === "success").length}</strong>
-        </div>
-        <div className="metricTile">
-          <span>最近失败</span>
+          <span>本页异常</span>
           <strong>{jobs.filter((job) => job.status === "failed" || job.status === "partial_success").length}</strong>
         </div>
       </section>
@@ -203,6 +207,7 @@ export default function AdminJobsPage() {
           </table>
         )}
       </section>
+      <PaginationBar meta={meta} loading={loading || refreshing} onPageChange={refreshJobs} />
     </main>
   );
 }

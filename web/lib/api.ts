@@ -97,8 +97,18 @@ export function getDigestByDate(date: string): Promise<Digest | null> {
   return apiGet<Digest | null>(`/api/v1/digests/${date}`);
 }
 
-export function listJobs(): Promise<JobRun[]> {
-  return apiGet<JobRun[]>("/api/v1/admin/jobs?page=1&page_size=20");
+export async function listJobs(page = 1): Promise<Paginated<JobRun>> {
+  const payload = await apiGetEnvelope<JobRun[]>(
+    `/api/v1/admin/jobs?page=${page}&page_size=20`
+  );
+  return {
+    data: payload.data,
+    meta: {
+      page: Number(payload.meta?.page ?? page),
+      page_size: Number(payload.meta?.page_size ?? payload.data.length),
+      total: Number(payload.meta?.total ?? payload.data.length)
+    }
+  };
 }
 
 export function triggerCollectJob(payload: {

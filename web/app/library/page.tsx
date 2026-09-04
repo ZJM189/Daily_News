@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { PaginationBar } from "../components/PaginationBar";
 import { createSavedSearch, searchLibraryItems } from "../../lib/api";
 import type { LibraryItem, PageMeta } from "../../lib/types";
 
@@ -232,24 +233,7 @@ export default function LibraryPage() {
                 </button>
               ))
             : null}
-          <div className="paginationBar">
-            <button
-              className="ghostButton"
-              type="button"
-              disabled={loading || page <= 1}
-              onClick={() => void loadItems(page - 1)}
-            >
-              上一页
-            </button>
-            <button
-              className="ghostButton"
-              type="button"
-              disabled={loading || page >= totalPages}
-              onClick={() => void loadItems(page + 1)}
-            >
-              下一页
-            </button>
-          </div>
+          <PaginationBar meta={meta} loading={loading} onPageChange={loadItems} />
         </div>
 
         <aside className="detailPanel">
