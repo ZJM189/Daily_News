@@ -6,11 +6,11 @@ import { apiPost, listJobs, triggerDailyPipelineJob } from "../../../lib/api";
 import type { JobRun, PageMeta } from "../../../lib/types";
 
 const jobActions = [
-  { label: "采集", path: "/api/v1/admin/jobs/collect", body: { source_types: [] } },
-  { label: "标准化", path: "/api/v1/admin/jobs/normalize", body: { limit: 5000 } },
-  { label: "评分", path: "/api/v1/admin/jobs/rank", body: { limit: 500 } },
-  { label: "专题聚合", path: "/api/v1/admin/jobs/dedupe", body: { limit: 1000 } },
-  { label: "中文摘要", path: "/api/v1/admin/jobs/summarize", body: { limit: 20, min_score: 70 } }
+  { label: "抓取内容", path: "/api/v1/admin/jobs/collect", body: { source_types: [] } },
+  { label: "整理内容", path: "/api/v1/admin/jobs/normalize", body: { limit: 5000 } },
+  { label: "计算热度", path: "/api/v1/admin/jobs/rank", body: { limit: 500 } },
+  { label: "合并相似内容", path: "/api/v1/admin/jobs/dedupe", body: { limit: 1000 } },
+  { label: "生成中文摘要", path: "/api/v1/admin/jobs/summarize", body: { limit: 20, min_score: 70 } }
 ];
 
 export default function AdminJobsPage() {
@@ -50,7 +50,7 @@ export default function AdminJobsPage() {
     try {
       const createdJob = await apiPost<JobRun>(action.path, action.body);
       setJobs((currentJobs) => [createdJob, ...currentJobs.filter((job) => job.id !== createdJob.id)]);
-      setMessage(`${action.label}任务已创建，worker 会自动执行`);
+      setMessage(`${action.label}任务已创建，后台会自动执行`);
       await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
@@ -60,7 +60,7 @@ export default function AdminJobsPage() {
   }
 
   async function triggerDailyPipeline() {
-    setRunningAction("完整链路");
+    setRunningAction("一键生成今日简报");
     setMessage(null);
     try {
       const createdJobs = await triggerDailyPipelineJob();
@@ -69,7 +69,7 @@ export default function AdminJobsPage() {
         ...createdJobs,
         ...currentJobs.filter((job) => !createdJobIds.has(job.id))
       ]);
-      setMessage(`完整链路任务已创建：${createdJobs.map((job) => job.job_type).join(" → ")}`);
+      setMessage(`今日简报流程已创建：${createdJobs.map((job) => jobTypeLabel(job.job_type)).join(" → ")}`);
       await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
@@ -80,12 +80,12 @@ export default function AdminJobsPage() {
 
   async function triggerDigest() {
     const today = formatDateParam(new Date());
-    setRunningAction("生成简报");
+    setRunningAction("发布今日简报");
     setMessage(null);
     try {
       const createdJob = await apiPost<JobRun>("/api/v1/admin/jobs/generate-digest", { digest_date: today });
       setJobs((currentJobs) => [createdJob, ...currentJobs.filter((job) => job.id !== createdJob.id)]);
-      setMessage("生成简报任务已创建，worker 会自动执行");
+      setMessage("发布今日简报任务已创建，后台会自动执行");
       await refreshJobs(1);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "创建任务失败");
@@ -116,14 +116,14 @@ export default function AdminJobsPage() {
         <div>
           <p className="eyebrow">管理员</p>
           <h1>任务日志</h1>
-          <p className="description">查看后台任务状态，并手动触发数据处理链路。存在等待或运行任务时会每 3 秒自动刷新。</p>
+          <p className="description">查看采集和简报生成进度。存在等待或运行任务时，页面会每 3 秒自动刷新。</p>
         </div>
         <div className="toolbarActions">
           <span className="mutedText">
             {refreshing ? "刷新中" : lastRefreshedAt ? `最近刷新 ${formatTime(lastRefreshedAt)}` : ""}
           </span>
           <button type="button" disabled={runningAction !== null} onClick={() => void triggerDailyPipeline()}>
-            {runningAction === "完整链路" ? "创建中" : "一键执行完整链路"}
+            {runningAction === "一键生成今日简报" ? "创建中" : "一键生成今日简报"}
           </button>
           <button className="ghostButton" type="button" onClick={() => void refreshJobs(meta.page)}>
             刷新
@@ -131,20 +131,53 @@ export default function AdminJobsPage() {
         </div>
       </section>
 
-      <section className="actionBar">
-        {jobActions.map((action) => (
-          <button
-            key={action.path}
-            type="button"
-            disabled={runningAction !== null}
-            onClick={() => void triggerJob(action)}
-          >
-            {runningAction === action.label ? "创建中" : action.label}
+      <section className="workflowGuide">
+        <div>
+          <strong>1. 抓取内容</strong>
+          <span>从已启用来源拉取最新信息</span>
+        </div>
+        <div>
+          <strong>2. 整理内容</strong>
+          <span>清洗标题、去重并统一字段</span>
+        </div>
+        <div>
+          <strong>3. 计算热度</strong>
+          <span>按来源、时间和关键词打分</span>
+        </div>
+        <div>
+          <strong>4. 合并相似内容</strong>
+          <span>把同一事件或项目聚成专题</span>
+        </div>
+        <div>
+          <strong>5. 生成摘要</strong>
+          <span>为候选内容生成中文摘要</span>
+        </div>
+        <div>
+          <strong>6. 发布简报</strong>
+          <span>按日期写入今日简报</span>
+        </div>
+      </section>
+
+      <section className="manualJobPanel">
+        <div>
+          <h2>单步重跑（高级）</h2>
+          <p className="mutedText">通常直接使用“一键生成今日简报”。下面按钮用于排查或补跑某个环节。</p>
+        </div>
+        <div className="actionBar compactActionBar">
+          {jobActions.map((action) => (
+            <button
+              key={action.path}
+              type="button"
+              disabled={runningAction !== null}
+              onClick={() => void triggerJob(action)}
+            >
+              {runningAction === action.label ? "创建中" : action.label}
+            </button>
+          ))}
+          <button type="button" disabled={runningAction !== null} onClick={() => void triggerDigest()}>
+            {runningAction === "发布今日简报" ? "创建中" : "发布今日简报"}
           </button>
-        ))}
-        <button type="button" disabled={runningAction !== null} onClick={() => void triggerDigest()}>
-          {runningAction === "生成简报" ? "创建中" : "生成简报"}
-        </button>
+        </div>
       </section>
 
       {message ? <section className="infoState">{message}</section> : null}
@@ -175,19 +208,19 @@ export default function AdminJobsPage() {
           <table>
             <thead>
               <tr>
-                <th>类型</th>
+                <th>任务</th>
                 <th>状态</th>
-                <th>统计</th>
+                <th>处理数量</th>
                 <th>进度</th>
                 <th>创建时间</th>
                 <th>耗时</th>
-                <th>错误</th>
+                <th>说明/错误</th>
               </tr>
             </thead>
             <tbody>
               {jobs.map((job) => (
                 <tr key={job.id}>
-                  <td>{job.job_type}</td>
+                  <td>{jobTypeLabel(job.job_type)}</td>
                   <td>
                     <span className={`statusBadge ${job.status}`}>{statusLabel(job.status)}</span>
                   </td>
@@ -224,7 +257,7 @@ function JobProgress({ job }: { job: JobRun }) {
       </div>
       <span className="mutedText">
         {job.status === "pending"
-          ? "等待 worker 拾取"
+          ? "等待后台执行"
           : job.status === "running" && job.total_count === 0
             ? "执行中"
             : `${percent}%`}
@@ -243,6 +276,19 @@ function statusLabel(status: string) {
     cancelled: "已取消"
   };
   return labels[status] ?? status;
+}
+
+function jobTypeLabel(jobType: string) {
+  const labels: Record<string, string> = {
+    collect: "抓取内容",
+    normalize: "整理内容",
+    rank: "计算热度",
+    dedupe: "合并相似内容",
+    summarize: "生成中文摘要",
+    generate_digest: "发布今日简报",
+    publish_digest: "发布简报"
+  };
+  return labels[jobType] ?? jobType;
 }
 
 function formatDateTime(value: string) {

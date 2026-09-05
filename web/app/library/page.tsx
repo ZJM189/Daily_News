@@ -116,7 +116,7 @@ export default function LibraryPage() {
         apply_as_filter: true,
         apply_as_boost: true
       });
-      setMessage("已保存到我的关注");
+      setMessage("当前搜索条件已保存到我的关注，会参与关注流排序和过滤");
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存搜索失败");
     } finally {
@@ -136,11 +136,11 @@ export default function LibraryPage() {
         <div>
           <p className="eyebrow">内容检索</p>
           <h1>信息库</h1>
-          <p className="description">检索全量入库内容，按来源、分类、摘要状态和分数快速复核。</p>
+          <p className="description">检索全量入库内容，按来源、分类、摘要状态和分数快速复核，也可以保存当前搜索条件用于我的关注。</p>
         </div>
         <div className="actionBar">
           <button className="ghostButton" type="button" onClick={() => void saveCurrentSearch()}>
-            {savingSearch ? "保存中" : "保存为关注"}
+            {savingSearch ? "保存中" : "保存当前搜索"}
           </button>
           <button className="ghostButton" type="button" onClick={() => void loadItems(page)}>
             刷新

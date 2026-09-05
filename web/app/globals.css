@@ -700,8 +700,32 @@ h2 {
   font-weight: 800;
 }
 
+.pageHeader > .linkButton {
+  margin-top: 0;
+}
+
 .linkButton:hover {
   background: var(--primary-strong);
+}
+
+.ghostLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #fff;
+  color: #344054;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.ghostLink:hover {
+  border-color: var(--primary);
+  background: #f3faf8;
+  color: var(--primary-strong);
 }
 
 .compactLink {
@@ -709,6 +733,70 @@ h2 {
   margin-top: 10px;
   padding: 0 12px;
   font-size: 13px;
+}
+
+.onboardingEmpty {
+  display: grid;
+  gap: 12px;
+  color: var(--text);
+}
+
+.onboardingEmpty p {
+  max-width: 720px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.onboardingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.onboardingActions .linkButton,
+.onboardingActions .ghostLink {
+  margin-top: 0;
+}
+
+.quickStartGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.quickStartCard {
+  display: grid;
+  gap: 10px;
+  min-height: 170px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.quickStartCard:hover {
+  border-color: #9bd4c5;
+  background: #f5fbf8;
+}
+
+.quickStartCard strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.quickStartCard span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.quickStartCard em {
+  align-self: end;
+  color: var(--primary-strong);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .followingLayout {
@@ -797,68 +885,6 @@ h2 {
   font-weight: 700;
 }
 
-.savedRuleList {
-  display: grid;
-  gap: 12px;
-}
-
-.savedRuleItem {
-  display: grid;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-subtle);
-  padding: 14px;
-}
-
-.ruleActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.ruleEditor {
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfd;
-  padding: 14px;
-}
-
-.ruleEditorGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.ruleEditorGrid label {
-  display: grid;
-  gap: 7px;
-  color: #344054;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.ruleToggleRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.ruleToggleRow label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #344054;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.ruleToggleRow input {
-  min-height: auto;
-}
-
 .tagEditor {
   display: grid;
   gap: 8px;
@@ -867,24 +893,36 @@ h2 {
   font-weight: 800;
 }
 
-.savedSearchBlock {
+.ruleModeBlock {
   display: grid;
-  gap: 6px;
+  gap: 14px;
   border: 1px solid #b7e4d7;
   border-radius: 8px;
-  background: #effaf6;
-  padding: 12px;
+  background: #f4fbf8;
+  padding: 14px;
 }
 
-.savedSearchBlock strong {
+.ruleModeBlock h3 {
+  margin: 0 0 4px;
   color: var(--primary-strong);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.35;
 }
 
-.savedSearchBlock span {
-  color: #344054;
+.ruleModeBlock p {
+  margin: 0;
+  color: var(--muted);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.6;
+}
+
+.hardFilterBlock {
+  border-color: #fedf89;
+  background: #fffaf0;
+}
+
+.hardFilterBlock h3 {
+  color: var(--warning);
 }
 
 .tagEditor .inlineForm {
@@ -991,6 +1029,54 @@ legend {
   min-height: 32px;
   color: var(--primary-strong);
   font-weight: 800;
+}
+
+.workflowGuide {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.workflowGuide div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.workflowGuide strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.workflowGuide span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.manualJobPanel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.manualJobPanel h2,
+.manualJobPanel p {
+  margin-bottom: 0;
+}
+
+.compactActionBar button {
+  min-height: 34px;
+  font-size: 13px;
 }
 
 .adminSplit {
@@ -1177,12 +1263,13 @@ tr:last-child td {
   .filterPanel,
   .libraryLayout,
   .followingLayout,
-  .adminSplit {
+  .adminSplit,
+  .quickStartGrid,
+  .workflowGuide {
     grid-template-columns: 1fr;
   }
 
-  .ruleSummaryGrid,
-  .ruleEditorGrid {
+  .ruleSummaryGrid {
     grid-template-columns: 1fr;
   }
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Digest } from "../../lib/types";
 
 const categoryLabels: Record<string, string> = {
@@ -22,9 +23,22 @@ const sourceTypeLabels: Record<string, string> = {
 export function DigestView({ digest }: { digest: Digest | null }) {
   if (!digest) {
     return (
-      <section className="emptyState">
-        <h2>暂无简报</h2>
-        <p>当前日期还没有发布的简报。可以在任务日志中触发采集、评分、聚合和生成任务。</p>
+      <section className="emptyState onboardingEmpty">
+        <h2>今天还没有可展示的简报</h2>
+        <p>
+          如果是首次使用，先确认来源和 LLM 已配置，然后执行“一键生成今日简报”。已有入库内容时，也可以先去信息库检索和复核。
+        </p>
+        <div className="onboardingActions">
+          <Link className="linkButton compactLink" href="/admin/jobs">
+            去生成简报
+          </Link>
+          <Link className="ghostLink compactLink" href="/admin/sources">
+            检查来源
+          </Link>
+          <Link className="ghostLink compactLink" href="/library">
+            打开信息库
+          </Link>
+        </div>
       </section>
     );
   }

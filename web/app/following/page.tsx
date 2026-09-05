@@ -70,8 +70,8 @@ export default function FollowingPage() {
     setError(null);
     try {
       await saveUserPreference(preference);
-      setMessage("关注已保存");
-      await load(meta.page);
+      await load(1);
+      setMessage("已保存，关注流已按新规则刷新");
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败，请稍后重试");
     } finally {
@@ -88,9 +88,15 @@ export default function FollowingPage() {
         item_id: action === "block_source" ? undefined : entry.item.id,
         source_id: action === "block_source" ? entry.item.source.id : undefined
       });
-      setMessage(action === "block_source" ? "已屏蔽该来源" : "反馈已记录");
+      if (action === "more_like") {
+        setMessage("多看类似已记录，后续会提高相似内容权重");
+      }
+      if (action === "less_like") {
+        setMessage("少看类似已记录，后续会降低相似内容权重");
+      }
       if (action === "block_source") {
-        await load(meta.page);
+        await load(1);
+        setMessage("已屏蔽该来源，并刷新关注流");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "反馈失败，请稍后重试");
@@ -143,7 +149,7 @@ export default function FollowingPage() {
         <div>
           <p className="eyebrow">个性化信息流</p>
           <h1>我的关注</h1>
-          <p className="description">左侧保存当前关注偏好，右侧展示当前生效规则。</p>
+          <p className="description">配置关键词、分类和来源偏好后，关注流会按规则重新排序和过滤。</p>
         </div>
         <button className="ghostButton" type="button" onClick={() => void load(meta.page)}>
           刷新
@@ -155,91 +161,103 @@ export default function FollowingPage() {
 
       <section className="followingLayout">
         <form className="preferencePanel" id={preferenceFormId} onSubmit={handleSave}>
-          <h2>当前关注规则</h2>
+          <h2>当前关注偏好</h2>
           <p className="mutedText">
-            关键词、分类和来源类型用于软加权，排除词、屏蔽来源和禁用来源类型会直接过滤。
+            这里只有一套当前偏好。信息库里保存的搜索条件也会参与关注流计算。
           </p>
-          <TagEditor
-            label="关注关键词"
-            placeholder="例如：OpenAI、Agent、AI 编程"
-            value={keywordInput}
-            tokens={preference.follow_keywords}
-            onChange={setKeywordInput}
-            onAdd={() => {
-              addToken("follow_keywords", keywordInput);
-              setKeywordInput("");
-            }}
-            onRemove={(token) => removeToken("follow_keywords", token)}
-          />
-          <TagEditor
-            label="排除关键词"
-            placeholder="例如：招聘、广告、无关厂商"
-            value={excludeInput}
-            tokens={preference.exclude_keywords}
-            onChange={setExcludeInput}
-            onAdd={() => {
-              addToken("exclude_keywords", excludeInput);
-              setExcludeInput("");
-            }}
-            onRemove={(token) => removeToken("exclude_keywords", token)}
-          />
-          <fieldset>
-            <legend>关注分类</legend>
-            <div className="checkGrid">
-              {categoryOptions.map((option) => (
-                <label key={option.value}>
-                  <input
-                    type="checkbox"
-                    checked={preference.follow_categories.includes(option.value)}
-                    onChange={() => toggleList("follow_categories", option.value)}
-                  />
-                  {option.label}
-                </label>
-              ))}
+          <section className="ruleModeBlock">
+            <div>
+              <h3>优先看这些</h3>
+              <p>用于软加权：匹配后排序更靠前，但不会把其他内容全部排除。</p>
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>关注来源类型</legend>
-            <div className="checkGrid">
-              {sourceTypeOptions.map((option) => (
-                <label key={option.value}>
-                  <input
-                    type="checkbox"
-                    checked={preference.follow_source_types.includes(option.value)}
-                    onChange={() => toggleList("follow_source_types", option.value)}
-                  />
-                  {option.label}
-                </label>
-              ))}
+            <TagEditor
+              label="关注关键词"
+              placeholder="例如：OpenAI、Agent、AI 编程"
+              value={keywordInput}
+              tokens={preference.follow_keywords}
+              onChange={setKeywordInput}
+              onAdd={() => {
+                addToken("follow_keywords", keywordInput);
+                setKeywordInput("");
+              }}
+              onRemove={(token) => removeToken("follow_keywords", token)}
+            />
+            <fieldset>
+              <legend>优先分类</legend>
+              <div className="checkGrid">
+                {categoryOptions.map((option) => (
+                  <label key={option.value}>
+                    <input
+                      type="checkbox"
+                      checked={preference.follow_categories.includes(option.value)}
+                      onChange={() => toggleList("follow_categories", option.value)}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>优先来源类型</legend>
+              <div className="checkGrid">
+                {sourceTypeOptions.map((option) => (
+                  <label key={option.value}>
+                    <input
+                      type="checkbox"
+                      checked={preference.follow_source_types.includes(option.value)}
+                      onChange={() => toggleList("follow_source_types", option.value)}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
+          <section className="ruleModeBlock hardFilterBlock">
+            <div>
+              <h3>不要看这些</h3>
+              <p>用于硬过滤：命中后直接从关注流里移除。</p>
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>禁用来源类型</legend>
-            <div className="checkGrid">
-              {sourceTypeOptions.map((option) => (
-                <label key={option.value}>
-                  <input
-                    type="checkbox"
-                    checked={preference.disabled_source_types.includes(option.value)}
-                    onChange={() => toggleList("disabled_source_types", option.value)}
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <TagEditor
-            label="屏蔽域名"
-            placeholder="例如：example.com"
-            value={domainInput}
-            tokens={preference.blocked_domains}
-            onChange={setDomainInput}
-            onAdd={() => {
-              addToken("blocked_domains", domainInput);
-              setDomainInput("");
-            }}
-            onRemove={(token) => removeToken("blocked_domains", token)}
-          />
+            <TagEditor
+              label="排除关键词"
+              placeholder="例如：招聘、广告、无关厂商"
+              value={excludeInput}
+              tokens={preference.exclude_keywords}
+              onChange={setExcludeInput}
+              onAdd={() => {
+                addToken("exclude_keywords", excludeInput);
+                setExcludeInput("");
+              }}
+              onRemove={(token) => removeToken("exclude_keywords", token)}
+            />
+            <fieldset>
+              <legend>禁用来源类型</legend>
+              <div className="checkGrid">
+                {sourceTypeOptions.map((option) => (
+                  <label key={option.value}>
+                    <input
+                      type="checkbox"
+                      checked={preference.disabled_source_types.includes(option.value)}
+                      onChange={() => toggleList("disabled_source_types", option.value)}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <TagEditor
+              label="屏蔽域名"
+              placeholder="例如：example.com"
+              value={domainInput}
+              tokens={preference.blocked_domains}
+              onChange={setDomainInput}
+              onAdd={() => {
+                addToken("blocked_domains", domainInput);
+                setDomainInput("");
+              }}
+              onRemove={(token) => removeToken("blocked_domains", token)}
+            />
+          </section>
           <button type="submit" disabled={saving}>
             {saving ? "保存中" : "保存当前关注"}
           </button>
@@ -250,7 +268,7 @@ export default function FollowingPage() {
             <div className="sectionHead">
               <div>
                 <h2>当前生效规则</h2>
-                <p className="mutedText">保存后会立刻影响右侧关注流预览。</p>
+                <p className="mutedText">保存后会立刻刷新关注流预览。</p>
               </div>
               <button
                 className="ghostButton"
@@ -294,10 +312,12 @@ export default function FollowingPage() {
           </div>
           {loading ? <div className="emptyState">正在根据规则生成预览</div> : null}
           {!loading && !hasRules ? (
-            <div className="emptyState">还没有关注规则，添加关键词后生成你的信息流。</div>
+            <div className="emptyState">还没有关注规则，添加一个关注关键词后生成你的信息流。</div>
           ) : null}
           {!loading && hasRules && feed.length === 0 ? (
-            <div className="emptyState">当前规则下暂无内容，可以放宽关键词或来源限制。</div>
+            <div className="emptyState">
+              当前规则下暂无内容。常见原因是信息库里暂无匹配内容、硬过滤过多，或对应来源暂未启用。
+            </div>
           ) : null}
           {!loading
             ? feed.map((entry) => (
