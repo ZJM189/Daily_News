@@ -1,6 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import {
+  CardHeader,
+  Notice,
+  PageHeader,
+  PageScaffold
+} from "../../components/UiPrimitives";
 import { createUser, listUsers, resetUserPassword, updateUser } from "../../../lib/api";
 import type { User } from "../../../lib/types";
 
@@ -150,25 +156,28 @@ export default function AdminUsersPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">管理员</p>
-          <h1>用户管理</h1>
-          <p className="description">系统不开放注册，所有用户由管理员创建、启停和分配角色。</p>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="管理员"
+        title="用户管理"
+        description="系统不开放注册，所有用户由管理员创建、启停和分配角色。"
+        actions={
         <button className="ghostButton" type="button" onClick={() => void refresh()}>
           刷新
         </button>
-      </section>
+        }
+      />
 
-      {message ? <section className="infoState">{message}</section> : null}
-      {error ? <section className="errorState compact">{error}</section> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
       <section className="adminSplit">
         <div className="adminStack">
           <form className="adminForm" onSubmit={handleCreate}>
-            <h2>创建用户</h2>
+            <CardHeader
+              title="创建用户"
+              description="创建后用户即可用账号密码登录系统。"
+            />
             <label>
               <span>用户名</span>
               <input
@@ -238,8 +247,10 @@ export default function AdminUsersPage() {
 
           {editingUser ? (
             <form className="adminForm" onSubmit={handleUpdate}>
-              <h2>编辑用户</h2>
-              <p className="mutedText">{editingUser.display_name || editingUser.username}</p>
+              <CardHeader
+                title="编辑用户"
+                description={editingUser.display_name || editingUser.username}
+              />
               <label>
                 <span>显示名</span>
                 <input
@@ -285,8 +296,10 @@ export default function AdminUsersPage() {
 
           {resetTarget ? (
             <form className="adminForm" onSubmit={handleResetPassword}>
-              <h2>重置密码</h2>
-              <p className="mutedText">{resetTarget.display_name || resetTarget.username}</p>
+              <CardHeader
+                title="重置密码"
+                description={resetTarget.display_name || resetTarget.username}
+              />
               <label>
                 <span>新密码</span>
                 <input
@@ -316,7 +329,11 @@ export default function AdminUsersPage() {
           ) : null}
         </div>
 
-        <section className="tableWrap">
+        <section className="tableWrap tableCard">
+          <div className="tableCardHeader">
+            <h2>用户列表</h2>
+            <p className="mutedText">管理账号状态、角色和密码重置。</p>
+          </div>
           {loading ? (
             <div className="emptyState">正在加载用户</div>
           ) : (
@@ -369,7 +386,7 @@ export default function AdminUsersPage() {
           )}
         </section>
       </section>
-    </main>
+    </PageScaffold>
   );
 }
 

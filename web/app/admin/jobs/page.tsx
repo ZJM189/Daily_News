@@ -1,7 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createSortedRowModel,
+  createColumnHelper,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  sortFn_datetime,
+  tableFeatures,
+  useTable,
+  type SortingState
+} from "@tanstack/react-table";
 import { PaginationBar } from "../../components/PaginationBar";
+import {
+  CardHeader,
+  MetricCard,
+  Notice,
+  PageHeader,
+  PageScaffold,
+  SurfaceCard
+} from "../../components/UiPrimitives";
 import { apiPost, listJobs, triggerDailyPipelineJob } from "../../../lib/api";
 import type { JobRun, PageMeta } from "../../../lib/types";
 
@@ -13,27 +32,104 @@ const jobActions = [
   { label: "生成中文摘要", path: "/api/v1/admin/jobs/summarize", body: { limit: 20, min_score: 70 } }
 ];
 
+const jobTableFeatures = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    basic: sortFn_basic,
+    datetime: sortFn_datetime
+  }
+});
+const columnHelper = createColumnHelper<typeof jobTableFeatures, JobRun>();
+
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<JobRun[]>([]);
   const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const activeCount = jobs.filter((job) => job.status === "pending" || job.status === "running").length;
+  const columns = useMemo(
+    () =>
+      columnHelper.columns([
+      columnHelper.accessor("job_type", {
+        id: "job_type",
+        header: "任务",
+        sortFn: "alphanumeric",
+        cell: (info) => <JobName job={info.row.original} />
+      }),
+      columnHelper.accessor("status", {
+        id: "status",
+        header: "状态",
+        sortFn: "alphanumeric",
+        cell: (info) => (
+          <span className={`statusBadge ${info.getValue()}`}>{statusLabel(info.getValue())}</span>
+        )
+      }),
+      columnHelper.accessor((job) => job.success_count + job.failure_count, {
+        id: "handled_count",
+        header: "处理数量",
+        sortFn: "basic",
+        cell: (info) => <JobCount job={info.row.original} />
+      }),
+      columnHelper.accessor((job) => progressPercent(job), {
+        id: "progress",
+        header: "进度",
+        sortFn: "basic",
+        cell: (info) => <JobProgress job={info.row.original} />
+      }),
+      columnHelper.accessor("created_at", {
+        id: "created_at",
+        header: "创建时间",
+        sortFn: "datetime",
+        sortDescFirst: true,
+        cell: (info) => formatDateTime(info.getValue())
+      }),
+      columnHelper.accessor((job) => durationSeconds(job), {
+        id: "duration",
+        header: "耗时",
+        sortFn: "basic",
+        cell: (info) => formatDuration(info.row.original)
+      }),
+      columnHelper.accessor("error_message", {
+        id: "error_message",
+        header: "说明/错误",
+        sortFn: "alphanumeric",
+        cell: (info) => <JobMessage value={info.getValue()} />
+      })
+    ]),
+    []
+  );
+  const table = useTable({
+    features: jobTableFeatures,
+    data: jobs,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    enableSortingRemoval: true
+  });
 
-  async function refreshJobs(nextPage = meta.page, options: { silent?: boolean } = {}) {
+  async function refreshJobs(
+    nextPage = meta.page,
+    options: { silent?: boolean; pageSize?: number } = {}
+  ) {
+    const nextPageSize = options.pageSize ?? pageSize;
     if (options.silent) {
       setRefreshing(true);
     } else {
       setLoading(true);
     }
     try {
-      const result = await listJobs(nextPage);
+      const result = await listJobs(nextPage, nextPageSize);
       setJobs(result.data);
       setMeta(result.meta);
+      setPageSize(result.meta.page_size);
       setLastRefreshedAt(new Date());
     } finally {
       if (options.silent) {
@@ -42,6 +138,11 @@ export default function AdminJobsPage() {
         setLoading(false);
       }
     }
+  }
+
+  async function handlePageSizeChange(nextPageSize: number) {
+    setPageSize(nextPageSize);
+    await refreshJobs(1, { pageSize: nextPageSize });
   }
 
   async function triggerJob(action: (typeof jobActions)[number]) {
@@ -108,17 +209,16 @@ export default function AdminJobsPage() {
     }, 3000);
 
     return () => window.clearInterval(timer);
-  }, [activeCount, meta.page]);
+  }, [activeCount, meta.page, pageSize]);
 
   return (
-    <main className="pageSurface">
-      <section className="toolbar">
-        <div>
-          <p className="eyebrow">管理员</p>
-          <h1>任务日志</h1>
-          <p className="description">查看采集和简报生成进度。存在等待或运行任务时，页面会每 3 秒自动刷新。</p>
-        </div>
-        <div className="toolbarActions">
+    <PageScaffold>
+      <PageHeader
+        eyebrow="管理员"
+        title="任务日志"
+        description="查看采集和简报生成进度。存在等待或运行任务时，页面会每 3 秒自动刷新。"
+        actions={
+          <div className="toolbarActions">
           <span className="mutedText">
             {refreshing ? "刷新中" : lastRefreshedAt ? `最近刷新 ${formatTime(lastRefreshedAt)}` : ""}
           </span>
@@ -129,7 +229,8 @@ export default function AdminJobsPage() {
             刷新
           </button>
         </div>
-      </section>
+        }
+      />
 
       <section className="workflowGuide">
         <div>
@@ -158,11 +259,11 @@ export default function AdminJobsPage() {
         </div>
       </section>
 
-      <section className="manualJobPanel">
-        <div>
-          <h2>单步重跑（高级）</h2>
-          <p className="mutedText">通常直接使用“一键生成今日简报”。下面按钮用于排查或补跑某个环节。</p>
-        </div>
+      <SurfaceCard className="manualJobPanel">
+        <CardHeader
+          title="单步重跑（高级）"
+          description="通常直接使用“一键生成今日简报”。下面按钮用于排查或补跑某个环节。"
+        />
         <div className="actionBar compactActionBar">
           {jobActions.map((action) => (
             <button
@@ -178,76 +279,118 @@ export default function AdminJobsPage() {
             {runningAction === "发布今日简报" ? "创建中" : "发布今日简报"}
           </button>
         </div>
+      </SurfaceCard>
+
+      {message ? <Notice tone="success">{message}</Notice> : null}
+
+      <section className="metricStrip jobSummaryGrid">
+        <MetricCard label="任务总数" value={meta.total} />
+        <MetricCard label="本页等待" value={jobs.filter((job) => job.status === "pending").length} />
+        <MetricCard label="本页运行" value={jobs.filter((job) => job.status === "running").length} />
+        <MetricCard
+          label="本页异常"
+          value={jobs.filter((job) => job.status === "failed" || job.status === "partial_success").length}
+        />
       </section>
 
-      {message ? <section className="infoState">{message}</section> : null}
-
-      <section className="jobSummaryGrid">
-        <div className="metricTile">
-          <span>任务总数</span>
-          <strong>{meta.total}</strong>
-        </div>
-        <div className="metricTile">
-          <span>本页等待</span>
-          <strong>{jobs.filter((job) => job.status === "pending").length}</strong>
-        </div>
-        <div className="metricTile">
-          <span>本页运行</span>
-          <strong>{jobs.filter((job) => job.status === "running").length}</strong>
-        </div>
-        <div className="metricTile">
-          <span>本页异常</span>
-          <strong>{jobs.filter((job) => job.status === "failed" || job.status === "partial_success").length}</strong>
-        </div>
-      </section>
-
-      <section className="tableWrap">
-        {loading ? (
-          <div className="emptyState">正在加载任务</div>
-        ) : (
-          <table>
+      <SurfaceCard className="tableCard">
+        <CardHeader
+          title="任务记录"
+          description="点击表头可按当前页排序，运行中的任务会自动刷新。"
+        />
+        <div className="tableWrap jobTableWrap">
+          {loading ? (
+            <div className="emptyState">正在加载任务</div>
+          ) : table.getRowModel().rows.length === 0 ? (
+            <div className="emptyState">暂无任务日志。</div>
+          ) : (
+            <table className="dataTable jobDataTable">
             <thead>
-              <tr>
-                <th>任务</th>
-                <th>状态</th>
-                <th>处理数量</th>
-                <th>进度</th>
-                <th>创建时间</th>
-                <th>耗时</th>
-                <th>说明/错误</th>
-              </tr>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id} className={`jobHeader ${header.column.id}`}>
+                      {header.isPlaceholder ? null : (
+                        <button
+                          className="tableSortButton"
+                          type="button"
+                          disabled={!header.column.getCanSort()}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span>
+                            <table.FlexRender header={header} />
+                          </span>
+                          {header.column.getCanSort() ? (
+                            <span className="sortIndicator">{sortIndicator(header.column.getIsSorted())}</span>
+                          ) : null}
+                        </button>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody>
-              {jobs.map((job) => (
-                <tr key={job.id}>
-                  <td>{jobTypeLabel(job.job_type)}</td>
-                  <td>
-                    <span className={`statusBadge ${job.status}`}>{statusLabel(job.status)}</span>
-                  </td>
-                  <td>
-                    {job.success_count}/{job.total_count || "-"}
-                    {job.failure_count ? `, 失败 ${job.failure_count}` : ""}
-                  </td>
-                  <td>
-                    <JobProgress job={job} />
-                  </td>
-                  <td>{formatDateTime(job.created_at)}</td>
-                  <td>{formatDuration(job)}</td>
-                  <td>{job.error_message || ""}</td>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getAllCells().map((cell) => (
+                    <td key={cell.id} className={`jobCell ${cell.column.id}`}>
+                      <table.FlexRender cell={cell} />
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
-          </table>
-        )}
-      </section>
-      <PaginationBar meta={meta} loading={loading || refreshing} onPageChange={refreshJobs} />
-    </main>
+            </table>
+          )}
+        </div>
+      </SurfaceCard>
+      <PaginationBar
+        meta={meta}
+        loading={loading || refreshing}
+        onPageChange={(nextPage) => refreshJobs(nextPage)}
+        onPageSizeChange={handlePageSizeChange}
+      />
+    </PageScaffold>
+  );
+}
+
+function JobName({ job }: { job: JobRun }) {
+  return (
+    <div className="jobNameCell">
+      <strong>{jobTypeLabel(job.job_type)}</strong>
+      <span>{job.trigger_type} · {job.id.slice(0, 8)}</span>
+    </div>
+  );
+}
+
+function JobCount({ job }: { job: JobRun }) {
+  return (
+    <div className="jobCountCell">
+      <strong>
+        {job.success_count}/{job.total_count || "-"}
+      </strong>
+      {job.failure_count ? <span>失败 {job.failure_count}</span> : <span>失败 0</span>}
+    </div>
+  );
+}
+
+function JobMessage({ value }: { value: string | null }) {
+  if (!value) {
+    return <span className="mutedText">-</span>;
+  }
+
+  const summary = value.length > 56 ? `${value.slice(0, 56)}...` : value;
+  return (
+    <details className="jobMessageCell">
+      <summary>{summary}</summary>
+      <p>{value}</p>
+    </details>
   );
 }
 
 function JobProgress({ job }: { job: JobRun }) {
-  const completedCount = job.success_count + job.failure_count;
-  const percent = job.total_count > 0 ? Math.min(100, Math.round((completedCount / job.total_count) * 100)) : 0;
+  const percent = progressPercent(job);
   const isActive = job.status === "pending" || job.status === "running";
 
   return (
@@ -264,6 +407,11 @@ function JobProgress({ job }: { job: JobRun }) {
       </span>
     </div>
   );
+}
+
+function progressPercent(job: JobRun) {
+  const completedCount = job.success_count + job.failure_count;
+  return job.total_count > 0 ? Math.min(100, Math.round((completedCount / job.total_count) * 100)) : 0;
 }
 
 function statusLabel(status: string) {
@@ -314,9 +462,7 @@ function formatTime(value: Date) {
 }
 
 function formatDuration(job: JobRun) {
-  const start = job.started_at ? new Date(job.started_at) : new Date(job.created_at);
-  const end = job.ended_at ? new Date(job.ended_at) : new Date();
-  const seconds = Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000));
+  const seconds = durationSeconds(job);
   if (job.status === "pending") {
     return "-";
   }
@@ -325,4 +471,20 @@ function formatDuration(job: JobRun) {
   }
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m ${seconds % 60}s`;
+}
+
+function durationSeconds(job: JobRun) {
+  const start = job.started_at ? new Date(job.started_at) : new Date(job.created_at);
+  const end = job.ended_at ? new Date(job.ended_at) : new Date();
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000));
+}
+
+function sortIndicator(value: false | "asc" | "desc") {
+  if (value === "asc") {
+    return "↑";
+  }
+  if (value === "desc") {
+    return "↓";
+  }
+  return "↕";
 }

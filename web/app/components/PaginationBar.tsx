@@ -9,9 +9,19 @@ type PaginationBarProps = {
   meta: PageMeta;
   loading?: boolean;
   onPageChange: (page: number) => void | Promise<void>;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (pageSize: number) => void | Promise<void>;
 };
 
-export function PaginationBar({ meta, loading = false, onPageChange }: PaginationBarProps) {
+const defaultPageSizeOptions = [10, 20, 50, 100];
+
+export function PaginationBar({
+  meta,
+  loading = false,
+  onPageChange,
+  pageSizeOptions = defaultPageSizeOptions,
+  onPageSizeChange
+}: PaginationBarProps) {
   const totalPages = Math.max(1, Math.ceil(meta.total / Math.max(meta.page_size, 1)));
   const currentPage = clampPage(meta.page, totalPages);
   const [draftPage, setDraftPage] = useState(String(currentPage));
@@ -39,13 +49,34 @@ export function PaginationBar({ meta, loading = false, onPageChange }: Paginatio
     goToPage(targetPage);
   }
 
+  function handlePageSizeChange(value: string) {
+    const nextPageSize = Number.parseInt(value, 10);
+    if (!Number.isFinite(nextPageSize) || nextPageSize === meta.page_size || !onPageSizeChange) {
+      return;
+    }
+    void onPageSizeChange(nextPageSize);
+  }
+
   return (
     <nav className="paginationBar" aria-label="分页导航">
       <div className="paginationInfo">
         <strong>共 {meta.total} 条</strong>
-        <span>
-          第 {currentPage} / {totalPages} 页
-        </span>
+        <label className="paginationSize">
+          <span>每页</span>
+          <select
+            value={meta.page_size}
+            disabled={loading || !onPageSizeChange}
+            onChange={(event) => handlePageSizeChange(event.target.value)}
+            aria-label="选择每页展示数量"
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <span>条</span>
+        </label>
       </div>
 
       <div className="paginationPages">
@@ -102,6 +133,9 @@ export function PaginationBar({ meta, loading = false, onPageChange }: Paginatio
       </div>
 
       <form className="paginationJump" onSubmit={handleJump}>
+        <span className="paginationCurrent">
+          第 {currentPage} / {totalPages} 页
+        </span>
         <label>
           <span>跳转到</span>
           <input

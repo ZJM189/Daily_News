@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DigestView } from "../components/DigestView";
+import { Notice, PageScaffold } from "../components/UiPrimitives";
 import { getTodayDigest } from "../../lib/api";
 import type { Digest } from "../../lib/types";
 
@@ -18,10 +19,10 @@ export default function TodayPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      {loading ? <section className="emptyState">正在加载今日简报</section> : null}
-      {error ? <section className="errorState">{error}</section> : null}
+    <PageScaffold>
+      {loading ? <Notice>正在加载今日简报</Notice> : null}
+      {error ? <Notice tone="danger">{error}</Notice> : null}
       {!loading && !error ? <DigestView digest={digest} /> : null}
-    </main>
+    </PageScaffold>
   );
 }

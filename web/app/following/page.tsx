@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { PaginationBar } from "../components/PaginationBar";
+import { CardHeader, Notice, PageHeader, PageScaffold } from "../components/UiPrimitives";
 import { createFeedback, getUserPreference, listFollowingItems, saveUserPreference } from "../../lib/api";
 import type { FollowingItem, PageMeta, UserPreference } from "../../lib/types";
 
@@ -42,25 +43,35 @@ export default function FollowingPage() {
   const [domainInput, setDomainInput] = useState("");
   const [feed, setFeed] = useState<FollowingItem[]>([]);
   const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const preferenceFormId = "following-preference-form";
 
-  async function load(page = 1) {
+  async function load(page = 1, nextPageSize = pageSize) {
     setLoading(true);
     setError(null);
     try {
-      const [nextPreference, nextFeed] = await Promise.all([getUserPreference(), listFollowingItems(page)]);
+      const [nextPreference, nextFeed] = await Promise.all([
+        getUserPreference(),
+        listFollowingItems(page, nextPageSize)
+      ]);
       setPreference(nextPreference);
       setFeed(nextFeed.data);
       setMeta(nextFeed.meta);
+      setPageSize(nextFeed.meta.page_size);
     } catch (err) {
       setError(err instanceof Error ? err.message : "关注内容加载失败");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handlePageSizeChange(nextPageSize: number) {
+    setPageSize(nextPageSize);
+    await load(1, nextPageSize);
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -144,27 +155,27 @@ export default function FollowingPage() {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.page_size));
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">个性化信息流</p>
-          <h1>我的关注</h1>
-          <p className="description">配置关键词、分类和来源偏好后，关注流会按规则重新排序和过滤。</p>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="个性化信息流"
+        title="我的关注"
+        description="配置关键词、分类和来源偏好后，关注流会按规则重新排序和过滤。"
+        actions={
         <button className="ghostButton" type="button" onClick={() => void load(meta.page)}>
           刷新
         </button>
-      </section>
+        }
+      />
 
-      {message ? <section className="infoState">{message}</section> : null}
-      {error ? <section className="errorState compact">{error}</section> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
       <section className="followingLayout">
         <form className="preferencePanel" id={preferenceFormId} onSubmit={handleSave}>
-          <h2>当前关注偏好</h2>
-          <p className="mutedText">
-            这里只有一套当前偏好。信息库里保存的搜索条件也会参与关注流计算。
-          </p>
+          <CardHeader
+            title="当前关注偏好"
+            description="这里只有一套当前偏好。信息库里保存的搜索条件也会参与关注流计算。"
+          />
           <section className="ruleModeBlock">
             <div>
               <h3>优先看这些</h3>
@@ -265,11 +276,10 @@ export default function FollowingPage() {
 
         <div className="followingFeed">
           <section className="rulePanel">
-            <div className="sectionHead">
-              <div>
-                <h2>当前生效规则</h2>
-                <p className="mutedText">保存后会立刻刷新关注流预览。</p>
-              </div>
+            <CardHeader
+              title="当前生效规则"
+              description="保存后会立刻刷新关注流预览。"
+              actions={
               <button
                 className="ghostButton"
                 type="button"
@@ -279,7 +289,8 @@ export default function FollowingPage() {
               >
                 编辑
               </button>
-            </div>
+              }
+            />
             {!hasRules ? (
               <div className="emptyState compact">当前没有生效规则。</div>
             ) : (
@@ -304,11 +315,11 @@ export default function FollowingPage() {
             )}
           </section>
 
-          <div className="listSummary">
-            <strong>关注流 {meta.total}</strong>
-            <span>
-              第 {meta.page}/{totalPages} 页
-            </span>
+          <div className="sectionTitleRow listSummary">
+            <div>
+              <h2>关注流</h2>
+              <p className="mutedText">共 {meta.total} 条，当前第 {meta.page}/{totalPages} 页</p>
+            </div>
           </div>
           {loading ? <div className="emptyState">正在根据规则生成预览</div> : null}
           {!loading && !hasRules ? (
@@ -321,7 +332,7 @@ export default function FollowingPage() {
           ) : null}
           {!loading
             ? feed.map((entry) => (
-                <article key={entry.item.id} className="followingItem">
+                <article key={entry.item.id} className="followingItem contentCard">
                   <div className="digestMeta">
                     <span>个性分 {entry.personalized_score.toFixed(1)}</span>
                     <span>{categoryLabel(entry.item.category)}</span>
@@ -351,10 +362,15 @@ export default function FollowingPage() {
                 </article>
               ))
             : null}
-          <PaginationBar meta={meta} loading={loading} onPageChange={load} />
+          <PaginationBar
+            meta={meta}
+            loading={loading}
+            onPageChange={(nextPage) => load(nextPage)}
+            onPageSizeChange={handlePageSizeChange}
+          />
         </div>
       </section>
-    </main>
+    </PageScaffold>
   );
 }
 

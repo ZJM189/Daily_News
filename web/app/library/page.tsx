@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { LibraryAnalyticsPanel } from "../components/LibraryAnalyticsPanel";
 import { PaginationBar } from "../components/PaginationBar";
+import { CardHeader, Notice, PageHeader, PageScaffold, SurfaceCard } from "../components/UiPrimitives";
 import { createSavedSearch, getLibraryAnalytics, searchLibraryItems } from "../../lib/api";
 import type {
   LibraryAnalytics,
@@ -69,6 +70,7 @@ export default function LibraryPage() {
   const [sort, setSort] = useState(emptyFilters.sort);
   const [minScore, setMinScore] = useState(emptyFilters.minScore);
   const [hasSummary, setHasSummary] = useState(emptyFilters.hasSummary);
+  const [pageSize, setPageSize] = useState(20);
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [analytics, setAnalytics] = useState<LibraryAnalytics | null>(null);
@@ -76,7 +78,7 @@ export default function LibraryPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
-  const [analyticsCollapsed, setAnalyticsCollapsed] = useState(false);
+  const [analyticsCollapsed, setAnalyticsCollapsed] = useState(true);
   const [analyticsWindow, setAnalyticsWindow] = useState("30");
   const [savingSearch, setSavingSearch] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,10 +118,10 @@ export default function LibraryPage() {
     setPage(1);
   }
 
-  function buildParams(nextPage = page, filters = currentFilters()) {
+  function buildParams(nextPage = page, filters = currentFilters(), nextPageSize = pageSize) {
     const params = buildFilterParams(filters);
     params.set("page", String(nextPage));
-    params.set("page_size", "20");
+    params.set("page_size", String(nextPageSize));
     params.set("sort", filters.sort);
     return params;
   }
@@ -130,14 +132,15 @@ export default function LibraryPage() {
     return params;
   }
 
-  async function loadItems(nextPage = page, filters = currentFilters()) {
+  async function loadItems(nextPage = page, filters = currentFilters(), nextPageSize = pageSize) {
     setLoading(true);
     setError(null);
     try {
-      const result = await searchLibraryItems(buildParams(nextPage, filters));
+      const result = await searchLibraryItems(buildParams(nextPage, filters, nextPageSize));
       setItems(result.data);
       setMeta(result.meta);
       setPage(result.meta.page);
+      setPageSize(result.meta.page_size);
       setSelectedId(result.data[0]?.id ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "信息库加载失败");
@@ -160,6 +163,11 @@ export default function LibraryPage() {
 
   async function reloadLibrary(nextPage = 1, filters = currentFilters()) {
     await Promise.all([loadItems(nextPage, filters), loadAnalytics(filters)]);
+  }
+
+  async function handlePageSizeChange(nextPageSize: number) {
+    setPageSize(nextPageSize);
+    await loadItems(1, currentFilters(), nextPageSize);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -218,16 +226,13 @@ export default function LibraryPage() {
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.page_size));
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">内容检索</p>
-          <h1>信息库</h1>
-          <p className="description">
-            检索全量入库内容，按来源、分类、摘要状态和分数快速复核，也可以保存当前搜索条件用于我的关注。
-          </p>
-        </div>
-        <div className="actionBar">
+    <PageScaffold>
+      <PageHeader
+        eyebrow="内容检索"
+        title="信息库"
+        description="检索全量入库内容，按来源、分类、摘要状态和分数快速复核，也可以保存当前搜索条件用于我的关注。"
+        actions={
+          <div className="actionBar">
           <button className="ghostButton" type="button" onClick={() => void saveCurrentSearch()}>
             {savingSearch ? "保存中" : "保存当前搜索"}
           </button>
@@ -239,59 +244,66 @@ export default function LibraryPage() {
             刷新
           </button>
         </div>
-      </section>
+        }
+      />
 
-      <form className="filterPanel" onSubmit={handleSubmit}>
-        <input
-          className="searchInput"
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          placeholder="搜索标题、摘要、标签"
+      <SurfaceCard className="filterCard">
+        <CardHeader
+          title="筛选检索"
+          description="筛选条件会同时驱动列表和数据洞察，保存后可作为我的关注规则。"
         />
-        <select value={category} onChange={(event) => setCategory(event.target.value)}>
-          {categoryFilterOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-          {sourceTypeFilterOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select value={sort} onChange={(event) => setSort(event.target.value)}>
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min="0"
-          max="100"
-          value={minScore}
-          onChange={(event) => setMinScore(event.target.value)}
-          placeholder="最低分"
-        />
-        <select value={hasSummary} onChange={(event) => setHasSummary(event.target.value)}>
-          <option value="">摘要状态</option>
-          <option value="true">已摘要</option>
-          <option value="false">待摘要</option>
-        </select>
-        <button type="submit" disabled={loading}>
-          {loading ? "检索中" : "检索"}
-        </button>
-        <button className="ghostButton" type="button" onClick={resetFilters}>
-          重置
-        </button>
-      </form>
+        <form className="filterPanel" onSubmit={handleSubmit}>
+          <input
+            className="searchInput"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="搜索标题、摘要、标签"
+          />
+          <select value={category} onChange={(event) => setCategory(event.target.value)}>
+            {categoryFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
+            {sourceTypeFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select value={sort} onChange={(event) => setSort(event.target.value)}>
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={minScore}
+            onChange={(event) => setMinScore(event.target.value)}
+            placeholder="最低分"
+          />
+          <select value={hasSummary} onChange={(event) => setHasSummary(event.target.value)}>
+            <option value="">摘要状态</option>
+            <option value="true">已摘要</option>
+            <option value="false">待摘要</option>
+          </select>
+          <button type="submit" disabled={loading}>
+            {loading ? "检索中" : "检索"}
+          </button>
+          <button className="ghostButton" type="button" onClick={resetFilters}>
+            重置
+          </button>
+        </form>
+      </SurfaceCard>
 
-      {error ? <section className="errorState compact">{error}</section> : null}
-      {message ? <section className="infoState">{message}</section> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
 
       <LibraryAnalyticsPanel
         analytics={analytics}
@@ -311,11 +323,11 @@ export default function LibraryPage() {
 
       <section className="libraryLayout">
         <div className="libraryList">
-          <div className="listSummary">
-            <strong>结果 {meta.total}</strong>
-            <span>
-              第 {meta.page}/{totalPages} 页
-            </span>
+          <div className="sectionTitleRow listSummary">
+            <div>
+              <h2>检索结果</h2>
+              <p className="mutedText">共 {meta.total} 条，当前第 {meta.page}/{totalPages} 页</p>
+            </div>
           </div>
           {loading ? <div className="emptyState">正在加载信息库内容</div> : null}
           {!loading && items.length === 0 ? (
@@ -342,10 +354,15 @@ export default function LibraryPage() {
                 </button>
               ))
             : null}
-          <PaginationBar meta={meta} loading={loading} onPageChange={loadItems} />
+          <PaginationBar
+            meta={meta}
+            loading={loading}
+            onPageChange={(nextPage) => loadItems(nextPage)}
+            onPageSizeChange={handlePageSizeChange}
+          />
         </div>
 
-        <aside className="detailPanel">
+        <aside className="detailPanel detailCard">
           {selectedItem ? (
             <>
               <div className="detailHeader">
@@ -389,7 +406,7 @@ export default function LibraryPage() {
           )}
         </aside>
       </section>
-    </main>
+    </PageScaffold>
   );
 }
 

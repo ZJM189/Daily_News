@@ -1,6 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import {
+  CardHeader,
+  Notice,
+  PageHeader,
+  PageScaffold
+} from "../../components/UiPrimitives";
 import { listSchedulerConfigs, updateSchedulerConfig } from "../../../lib/api";
 import type { SchedulerConfig } from "../../../lib/types";
 
@@ -75,24 +81,27 @@ export default function AdminSchedulerPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">管理员</p>
-          <h1>调度配置</h1>
-          <p className="description">配置后台自动任务的 cron、时区和启停状态。默认每日 8 点生成中文简报。</p>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="管理员"
+        title="调度配置"
+        description="配置后台自动任务的 cron、时区和启停状态。默认每日 8 点生成中文简报。"
+        actions={
         <button className="ghostButton" type="button" onClick={() => void refresh()}>
           刷新
         </button>
-      </section>
+        }
+      />
 
-      {message ? <section className="infoState">{message}</section> : null}
-      {error ? <section className="errorState compact">{error}</section> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
       <section className="adminSplit">
         <form className="adminForm" onSubmit={handleSubmit}>
-          <h2>编辑调度</h2>
+          <CardHeader
+            title="编辑调度"
+            description="修改 cron、时区和启停状态后，scheduler 容器会按新配置执行。"
+          />
           {editing ? (
             <>
               <label>
@@ -139,7 +148,11 @@ export default function AdminSchedulerPage() {
           )}
         </form>
 
-        <section className="tableWrap">
+        <section className="tableWrap tableCard">
+          <div className="tableCardHeader">
+            <h2>调度任务</h2>
+            <p className="mutedText">查看各后台任务的 cron、时区、启停和最近更新时间。</p>
+          </div>
           {loading ? (
             <div className="emptyState">正在加载调度配置</div>
           ) : (
@@ -182,7 +195,7 @@ export default function AdminSchedulerPage() {
           )}
         </section>
       </section>
-    </main>
+    </PageScaffold>
   );
 }
 

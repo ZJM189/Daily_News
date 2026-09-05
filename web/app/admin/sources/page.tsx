@@ -2,6 +2,12 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
+  CardHeader,
+  Notice,
+  PageHeader,
+  PageScaffold
+} from "../../components/UiPrimitives";
+import {
   createSource,
   createSourceCredential,
   listSourceCredentials,
@@ -235,26 +241,28 @@ export default function AdminSourcesPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">管理员</p>
-          <h1>来源管理</h1>
-          <p className="description">管理 RSS、GitHub、HN、arXiv、Product Hunt 和 Hugging Face 数据源。</p>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="管理员"
+        title="来源管理"
+        description="管理 RSS、GitHub、HN、arXiv、Product Hunt 和 Hugging Face 数据源。"
+        actions={
         <button className="ghostButton" type="button" onClick={() => void refresh()}>
           刷新
         </button>
-      </section>
+        }
+      />
 
-      {message ? <section className="infoState">{message}</section> : null}
-      {error ? <section className="errorState compact">{error}</section> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
       <section className="adminSplit">
         <div className="adminStack">
           <form className="adminForm" onSubmit={handleSubmit}>
-            <h2>{editingSource ? "编辑来源" : "新增来源"}</h2>
-            {editingSource ? <p className="mutedText">正在编辑：{editingSource.name}</p> : null}
+            <CardHeader
+              title={editingSource ? "编辑来源" : "新增来源"}
+              description={editingSource ? `正在编辑：${editingSource.name}` : "新增一个可被任务调度采集的数据来源。"}
+            />
             <label>
               <span>名称</span>
               <input
@@ -367,7 +375,10 @@ export default function AdminSourcesPage() {
           </form>
 
           <form className="adminForm" onSubmit={handleCreateCredential}>
-            <h2>新增凭据</h2>
+            <CardHeader
+              title="新增凭据"
+              description="用于 GitHub、Product Hunt 等需要授权的来源，保存后只展示脱敏值。"
+            />
             <label>
               <span>名称</span>
               <input
@@ -418,7 +429,11 @@ export default function AdminSourcesPage() {
           </form>
         </div>
 
-        <section className="tableWrap">
+        <section className="tableWrap tableCard">
+          <div className="tableCardHeader">
+            <h2>采集来源</h2>
+            <p className="mutedText">管理来源启停、权重、单源采集和最近错误。</p>
+          </div>
           {loading ? (
             <div className="emptyState">正在加载来源</div>
           ) : (
@@ -479,7 +494,11 @@ export default function AdminSourcesPage() {
         </section>
       </section>
 
-      <section className="tableWrap secondaryTable">
+      <section className="tableWrap tableCard secondaryTable">
+        <div className="tableCardHeader">
+          <h2>来源凭据</h2>
+          <p className="mutedText">集中管理来源 API Token，不在前端展示明文密钥。</p>
+        </div>
         <table>
           <thead>
             <tr>
@@ -517,7 +536,7 @@ export default function AdminSourcesPage() {
           </tbody>
         </table>
       </section>
-    </main>
+    </PageScaffold>
   );
 }
 

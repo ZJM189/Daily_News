@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DigestView } from "../components/DigestView";
+import { Notice, PageHeader, PageScaffold } from "../components/UiPrimitives";
 import { getDigestByDate } from "../../lib/api";
 import type { Digest } from "../../lib/types";
 
@@ -28,12 +29,12 @@ export default function HistoryPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      <section className="toolbar">
-        <div>
-          <p className="eyebrow">历史简报</p>
-          <h1>按日期查看简报快照</h1>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="历史简报"
+        title="按日期查看简报快照"
+        description="按自然日回看已经发布过的中文简报，适合复盘某一天的 AI 热点变化。"
+        actions={
         <form
           className="inlineForm"
           onSubmit={(event) => {
@@ -44,11 +45,12 @@ export default function HistoryPage() {
           <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           <button type="submit">查询</button>
         </form>
-      </section>
-      {loading ? <section className="emptyState">正在查询</section> : null}
-      {error ? <section className="errorState">{error}</section> : null}
+        }
+      />
+      {loading ? <Notice>正在查询</Notice> : null}
+      {error ? <Notice tone="danger">{error}</Notice> : null}
       {!loading && !error ? <DigestView digest={digest} /> : null}
-    </main>
+    </PageScaffold>
   );
 }
 

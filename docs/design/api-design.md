@@ -19,7 +19,7 @@
 - 认证使用 HttpOnly Cookie Session。
 - 后端根据 session 识别当前用户，不信任前端传入的用户 ID。
 - 管理接口统一放在 `/admin` 下，并强制 `admin` 角色。
-- 列表接口统一支持分页。
+- 列表接口统一支持分页，`page_size` 前端提供 10、20、50、100 四档选择。
 - 普通用户不能调用任何 source 创建、外部实时检索或任务触发接口。
 - HTTP router 只做协议适配，不直接操作 ORM model；写操作进入 application use case，核心规则由 domain 层维护。
 

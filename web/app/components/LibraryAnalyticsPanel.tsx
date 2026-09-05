@@ -79,11 +79,15 @@ export function LibraryAnalyticsPanel({
   const totals = analytics?.totals;
 
   return (
-    <section className="analyticsPanel">
+    <section className={`analyticsPanel ${collapsed ? "analyticsPanelCollapsed" : "analyticsPanelExpanded"}`}>
       <div className="analyticsHeader">
         <div>
-          <h2>数据概览</h2>
-          <p className="mutedText">跟随当前检索条件动态统计，新增来源后会自动进入图表。</p>
+          <h2>{collapsed ? "数据洞察" : "数据大屏"}</h2>
+          <p className="mutedText">
+            {collapsed
+              ? "当前检索条件下的核心指标，展开后查看趋势和分布。"
+              : "跟随当前检索条件动态统计，新增来源后会自动进入图表。"}
+          </p>
         </div>
         <div className="analyticsControls">
           <select value={windowDays} onChange={(event) => onWindowChange(event.target.value)}>
@@ -94,13 +98,25 @@ export function LibraryAnalyticsPanel({
             ))}
           </select>
           <button className="ghostButton" type="button" onClick={onToggleCollapsed}>
-            {collapsed ? "展开" : "收起"}
+            {collapsed ? "展开数据大屏" : "收起数据大屏"}
           </button>
         </div>
       </div>
 
-      {collapsed ? null : (
-        <>
+      {collapsed ? (
+        <button className="analyticsPreview" type="button" onClick={onToggleCollapsed}>
+          <CompactMetric label="入库总数" value={formatInteger(totals?.item_count)} loading={loading} />
+          <CompactMetric
+            label="摘要覆盖"
+            value={totals ? formatPercent(totals.summary_rate) : "-"}
+            loading={loading}
+          />
+          <CompactMetric label="来源数" value={formatInteger(totals?.source_count)} loading={loading} />
+          <CompactMetric label="平均分" value={formatNumber(totals?.average_score)} loading={loading} />
+          <span className="analyticsPreviewAction">下拉展开</span>
+        </button>
+      ) : (
+        <div className="analyticsDashboard">
           <div className="analyticsMetricGrid">
             <MetricCard label="入库总数" value={formatInteger(totals?.item_count)} loading={loading} />
             <MetricCard
@@ -145,9 +161,18 @@ export function LibraryAnalyticsPanel({
               emptyText="暂无来源数据"
             />
           </div>
-        </>
+        </div>
       )}
     </section>
+  );
+}
+
+function CompactMetric({ label, value, loading }: { label: string; value: string; loading: boolean }) {
+  return (
+    <span className="analyticsPreviewMetric">
+      <span>{label}</span>
+      <strong>{loading ? "统计中" : value}</strong>
+    </span>
   );
 }
 

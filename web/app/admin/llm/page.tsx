@@ -2,6 +2,12 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
+  CardHeader,
+  Notice,
+  PageHeader,
+  PageScaffold
+} from "../../components/UiPrimitives";
+import {
   createLLMProvider,
   listLLMProviders,
   setDefaultLLMProvider,
@@ -135,27 +141,27 @@ export default function AdminLlmPage() {
   }, []);
 
   return (
-    <main className="pageSurface">
-      <section className="pageHeader">
-        <div>
-          <p className="eyebrow">管理员</p>
-          <h1>LLM 设置</h1>
-          <p className="description">配置 OpenAI-compatible Provider、默认模型、密钥脱敏和调用超时重试。</p>
-        </div>
+    <PageScaffold>
+      <PageHeader
+        eyebrow="管理员"
+        title="LLM 设置"
+        description="配置 OpenAI-compatible Provider、默认模型、密钥脱敏和调用超时重试。"
+        actions={
         <button className="ghostButton" type="button" onClick={() => void refresh()}>
           刷新
         </button>
-      </section>
+        }
+      />
 
-      {message ? <section className="infoState">{message}</section> : null}
-      {error ? <section className="errorState compact">{error}</section> : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
+      {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
       <section className="adminSplit">
         <form className="adminForm" onSubmit={handleSubmit}>
-          <h2>{editingProvider ? "编辑 Provider" : "新增 Provider"}</h2>
-          {editingProvider ? (
-            <p className="mutedText">正在编辑：{editingProvider.name}</p>
-          ) : null}
+          <CardHeader
+            title={editingProvider ? "编辑 Provider" : "新增 Provider"}
+            description={editingProvider ? `正在编辑：${editingProvider.name}` : "新增一个 OpenAI-compatible 模型服务。"}
+          />
           <label>
             <span>名称</span>
             <input
@@ -242,7 +248,11 @@ export default function AdminLlmPage() {
           ) : null}
         </form>
 
-        <section className="tableWrap">
+        <section className="tableWrap tableCard">
+          <div className="tableCardHeader">
+            <h2>Provider 列表</h2>
+            <p className="mutedText">管理默认模型、启停状态、调用超时和重试策略。</p>
+          </div>
           {loading ? (
             <div className="emptyState">正在加载 Provider</div>
           ) : (
@@ -298,6 +308,6 @@ export default function AdminLlmPage() {
           )}
         </section>
       </section>
-    </main>
+    </PageScaffold>
   );
 }

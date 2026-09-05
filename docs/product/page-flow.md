@@ -25,10 +25,10 @@ flowchart TD
     SaveSearch --> Following[我的关注]
     Today --> Following
     Following --> Today
-    AdminSources[来源管理] --> SourceModal[新增/编辑来源弹窗]
+    AdminSources[来源管理] --> SourceForm[新增/编辑来源表单卡片]
     AdminJobs[任务日志] --> JobDetail[任务详情]
-    AdminLLM[LLM 设置] --> LLMModal[新增/编辑 Provider 弹窗]
-    AdminUsers[用户管理] --> UserModal[新增/编辑用户弹窗]
+    AdminLLM[LLM 设置] --> LLMForm[新增/编辑 Provider 表单卡片]
+    AdminUsers[用户管理] --> UserForm[新增/编辑用户表单卡片]
 ```
 
 ## 2. 登录与访问流程
@@ -128,8 +128,8 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[管理员进入来源管理] --> B{操作}
-    B -- 新增 --> C[打开新增来源弹窗]
-    B -- 编辑 --> D[打开编辑来源弹窗]
+    B -- 新增 --> C[填写新增来源表单卡片]
+    B -- 编辑 --> D[切换到编辑来源表单卡片]
     B -- 启用/禁用 --> E[更新来源状态]
     B -- 手动抓取 --> F[触发单 source 抓取]
     C --> G[保存配置]

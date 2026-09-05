@@ -98,9 +98,9 @@ export function getDigestByDate(date: string): Promise<Digest | null> {
   return apiGet<Digest | null>(`/api/v1/digests/${date}`);
 }
 
-export async function listJobs(page = 1): Promise<Paginated<JobRun>> {
+export async function listJobs(page = 1, pageSize = 20): Promise<Paginated<JobRun>> {
   const payload = await apiGetEnvelope<JobRun[]>(
-    `/api/v1/admin/jobs?page=${page}&page_size=20`
+    `/api/v1/admin/jobs?page=${page}&page_size=${pageSize}`
   );
   return {
     data: payload.data,
@@ -353,9 +353,9 @@ export function createFeedback(payload: {
   return apiPost<{ status: string }>("/api/v1/following/feedback", payload);
 }
 
-export async function listFollowingItems(page = 1): Promise<Paginated<FollowingItem>> {
+export async function listFollowingItems(page = 1, pageSize = 20): Promise<Paginated<FollowingItem>> {
   const payload = await apiGetEnvelope<FollowingItem[]>(
-    `/api/v1/following/items?page=${page}&page_size=20`
+    `/api/v1/following/items?page=${page}&page_size=${pageSize}`
   );
   return {
     data: payload.data,

@@ -68,7 +68,7 @@ flowchart LR
 
 | 层级 | 选型 | 说明 |
 | --- | --- | --- |
-| 前端 | Next.js + TypeScript | Web 看板、路由、页面状态管理 |
+| 前端 | Next.js + TypeScript + local UI primitives | Web 看板、路由、页面状态管理、统一后台组件 |
 | 后端 | FastAPI + Python + DDD 模块化单体 | API、认证、业务编排、管理后台接口 |
 | ORM/迁移 | SQLAlchemy + Alembic | 数据模型、迁移版本管理 |
 | 数据库 | PostgreSQL | 结构化数据、JSONB、全文检索、索引能力 |
@@ -169,27 +169,30 @@ web/
 │   ├── history/
 │   ├── library/
 │   ├── following/
-│   └── admin/
-│       ├── sources/
-│       ├── jobs/
-│       ├── llm/
-│       └── users/
-├── components/
-│   ├── layout/
-│   ├── digest/
-│   ├── library/
-│   ├── following/
-│   └── admin/
+│   ├── admin/
+│   │   ├── sources/
+│   │   ├── jobs/
+│   │   ├── llm/
+│   │   └── users/
+│   ├── components/
+│   │   ├── AppShell.tsx
+│   │   ├── DigestView.tsx
+│   │   ├── LibraryAnalyticsPanel.tsx
+│   │   ├── PaginationBar.tsx
+│   │   └── UiPrimitives.tsx
+│   ├── layout.tsx
+│   └── globals.css
 ├── lib/
-│   ├── api-client.ts
-│   ├── auth.ts
+│   ├── api.ts
 │   └── types.ts
-└── styles/
 ```
 
 前端原则：
 
 - 所有业务数据通过 `/api/v1` 读取。
+- `AppShell` 负责 shadcn/ui Sidebar 风格侧边栏、顶部栏、移动端抽屉和退出登录。
+- `UiPrimitives` 提供 PageScaffold、PageHeader、SurfaceCard、CardHeader、MetricCard 和 Notice。
+- 中间内容区通过本地 shadcn-style primitives 统一页面结构，避免每个页面重复散写布局。
 - 普通用户不渲染管理员导航。
 - 管理页面仍依赖后端权限校验，不能只靠前端隐藏。
 - 信息库搜索只请求站内内容查询 API。
