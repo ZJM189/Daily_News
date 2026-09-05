@@ -42,23 +42,19 @@ http://localhost
 http://localhost/api/v1/healthz
 ```
 
-如果没有域名，只使用公网 IP 访问，例如 `101.251.179.93`，可以在 `.env` 中配置：
+如果暂时没有域名，可以使用服务器公网 IP 访问。请将实际地址只配置在服务器上的 `.env` 文件中，不要提交到代码仓库：
 
 ```dotenv
 APP_ENV=production
-APP_DOMAIN=101.251.179.93
-APP_EXTERNAL_URL=http://101.251.179.93
+APP_DOMAIN=your-server-ip
+APP_EXTERNAL_URL=http://your-server-ip
 CADDYFILE_PATH=./infra/caddy/Caddyfile
 HTTP_PORT=8181
 SESSION_COOKIE_SECURE=false
 NEXT_PUBLIC_API_BASE_URL=/api/v1
 ```
 
-然后访问：
-
-```text
-http://101.251.179.93:8181
-```
+然后将 `your-server-ip` 替换为实际公网 IP，再访问 `http://your-server-ip:8181`。
 
 ## LLM 配置
 
