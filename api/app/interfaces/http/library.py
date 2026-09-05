@@ -4,13 +4,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.content_library.dtos import LibrarySearchQuery
+from app.application.content_library.dtos import LibraryAnalyticsQuery, LibrarySearchQuery
 from app.application.content_library.service import ContentLibraryService
 from app.application.identity.dtos import UserDTO
 from app.interfaces.http.dependencies import get_content_library_service, get_current_user
-from app.interfaces.http.schemas import LibraryItemResponse, PaginatedLibraryItemsResponse
+from app.interfaces.http.schemas import (
+    LibraryAnalyticsResponse,
+    LibraryItemResponse,
+    PaginatedLibraryItemsResponse,
+)
 
-router = APIRouter(prefix="/library/items", tags=["library"])
+router = APIRouter(prefix="/library", tags=["library"])
 
 CATEGORY_PATTERN = (
     r"^(model_company|open_source|research_paper|product_launch|community|"
@@ -21,7 +25,7 @@ ITEM_STATUS_PATTERN = r"^(collected|normalized|deduped|ranked|summarized|selecte
 SORT_PATTERN = r"^(latest|score|collected)$"
 
 
-@router.get("")
+@router.get("/items")
 def search_items(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[ContentLibraryService, Depends(get_content_library_service)],
@@ -61,7 +65,36 @@ def search_items(
     )
 
 
-@router.get("/{item_id}")
+@router.get("/analytics")
+def get_library_analytics(
+    actor: Annotated[UserDTO, Depends(get_current_user)],
+    service: Annotated[ContentLibraryService, Depends(get_content_library_service)],
+    keyword: Annotated[str | None, Query(max_length=200)] = None,
+    category: Annotated[str | None, Query(pattern=CATEGORY_PATTERN)] = None,
+    source_type: Annotated[str | None, Query(pattern=SOURCE_TYPE_PATTERN)] = None,
+    source_id: UUID | None = None,
+    item_status: Annotated[str | None, Query(alias="status", pattern=ITEM_STATUS_PATTERN)] = None,
+    min_score: Annotated[float | None, Query(ge=0, le=100)] = None,
+    has_summary: bool | None = None,
+    window_days: Annotated[int, Query(ge=0, le=365)] = 30,
+) -> dict[str, LibraryAnalyticsResponse]:
+    analytics = service.get_analytics(
+        actor=actor,
+        query=LibraryAnalyticsQuery(
+            keyword=keyword,
+            category=category,
+            source_type=source_type,
+            source_id=source_id,
+            status=item_status,
+            min_score=min_score,
+            has_summary=has_summary,
+            window_days=window_days,
+        ),
+    )
+    return {"data": LibraryAnalyticsResponse.model_validate(analytics)}
+
+
+@router.get("/items/{item_id}")
 def get_item(
     item_id: UUID,
     actor: Annotated[UserDTO, Depends(get_current_user)],

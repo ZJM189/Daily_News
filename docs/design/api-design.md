@@ -225,7 +225,7 @@
 
 ### 6.1 信息库搜索
 
-`GET /api/v1/items`
+`GET /api/v1/library/items`
 
 查询参数：
 
@@ -238,8 +238,9 @@
 | `status` | string | 否 | 处理状态 |
 | `published_from` | date | 否 | 发布时间起 |
 | `published_to` | date | 否 | 发布时间止 |
-| `sort` | string | 否 | `score`, `published_at`, `collected_at` |
-| `order` | string | 否 | `asc`, `desc` |
+| `min_score` | number | 否 | 最低热度分，0-100 |
+| `has_summary` | boolean | 否 | 是否已有中文摘要 |
+| `sort` | string | 否 | `latest`, `score`, `collected` |
 | `page` | integer | 否 | 默认 1 |
 | `page_size` | integer | 否 | 默认 20，最大 100 |
 
@@ -278,9 +279,60 @@
 - 该接口只搜索已采集入库内容。
 - 不触发外部实时检索。
 
-### 6.2 条目详情
+### 6.2 信息库数据概览
 
-`GET /api/v1/items/{item_id}`
+`GET /api/v1/library/analytics`
+
+查询参数与信息库搜索保持同一口径，额外支持：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `window_days` | integer | 否 | 统计窗口，`7` 最近 7 天，`30` 最近 30 天，`0` 表示全部；默认 30 |
+
+响应：
+
+```json
+{
+  "data": {
+    "totals": {
+      "item_count": 248,
+      "summarized_count": 120,
+      "summary_rate": 48.4,
+      "source_count": 8,
+      "average_score": 68.4
+    },
+    "trend": [
+      { "date": "2026-09-01", "count": 42 },
+      { "date": "2026-09-02", "count": 51 }
+    ],
+    "source_types": [
+      { "key": "github", "label": "GitHub", "value": 86 },
+      { "key": "arxiv", "label": "arXiv", "value": 64 }
+    ],
+    "sources": [
+      { "key": "uuid", "label": "GitHub AI Trending", "value": 32 }
+    ],
+    "categories": [
+      { "key": "open_source", "label": "开源项目", "value": 92 }
+    ],
+    "score_buckets": [
+      { "key": "0_40", "label": "0-40", "min_score": null, "max_score": 40, "value": 12 },
+      { "key": "40_60", "label": "40-60", "min_score": 40, "max_score": 60, "value": 44 },
+      { "key": "60_80", "label": "60-80", "min_score": 60, "max_score": 80, "value": 130 },
+      { "key": "80_plus", "label": "80+", "min_score": 80, "max_score": null, "value": 62 }
+    ]
+  }
+}
+```
+
+约束：
+
+- 图表维度使用动态数组返回，前端不写死具体来源名称。
+- 该接口不触发外部实时抓取，只统计已入库内容。
+
+### 6.3 条目详情
+
+`GET /api/v1/library/items/{item_id}`
 
 响应：
 
@@ -321,7 +373,7 @@
 }
 ```
 
-### 6.3 Topic 详情
+### 6.4 Topic 详情
 
 `GET /api/v1/topics/{topic_id}`
 

@@ -3,6 +3,7 @@ import type {
   Digest,
   FollowingItem,
   JobRun,
+  LibraryAnalytics,
   LibraryItem,
   LLMProvider,
   Paginated,
@@ -299,6 +300,10 @@ export async function searchLibraryItems(params: URLSearchParams): Promise<Pagin
       total: Number(payload.meta?.total ?? payload.data.length)
     }
   };
+}
+
+export function getLibraryAnalytics(params: URLSearchParams): Promise<LibraryAnalytics> {
+  return apiGet<LibraryAnalytics>(`/api/v1/library/analytics?${params.toString()}`);
 }
 
 export function getUserPreference(): Promise<UserPreference> {

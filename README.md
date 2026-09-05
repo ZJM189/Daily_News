@@ -11,6 +11,7 @@ Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动
 - 多厂商 LLM：支持 OpenAI-compatible 接口，可配置 OpenAI、DeepSeek、通义千问等兼容服务。
 - 多用户账号：不开放公开注册，只允许管理员创建用户、禁用用户和重置密码。
 - 个性化关注：关注关键词软加权，排除关键词硬过滤，支持分类、来源类型、屏蔽来源和保存搜索。
+- 动态数据洞察：信息库支持入库趋势、来源分布、分类分布、分数分布和摘要覆盖率统计。
 - Web 工作台：今日简报、历史简报、信息库、我的关注、任务日志、用户管理、来源管理、LLM 管理、调度管理。
 - 外公网部署：Caddy 作为统一入口，对外只暴露 HTTP/HTTPS，API 和 Web 使用同源路径。
 
@@ -18,7 +19,7 @@ Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动
 
 | 模块 | 技术 |
 | --- | --- |
-| 前端 | Next.js App Router, React, TypeScript |
+| 前端 | Next.js App Router, React, TypeScript, Apache ECharts |
 | 后端 | FastAPI, Python 3.12 |
 | 架构 | DDD 风格模块化单体 |
 | 数据库 | PostgreSQL |
@@ -84,7 +85,7 @@ API Key：你的 API Key
 | `/login` | 用户登录 |
 | `/today` | 今日 AI 简报 |
 | `/history` | 按日期查看历史简报 |
-| `/library` | 全量信息库检索、筛选和详情查看 |
+| `/library` | 全量信息库检索、动态数据概览、筛选和详情查看 |
 | `/following` | 个性化关注流、偏好配置和反馈 |
 | `/admin/users` | 管理员创建用户、禁用用户、重置密码 |
 | `/admin/sources` | 数据源和凭据管理 |

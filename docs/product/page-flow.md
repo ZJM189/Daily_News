@@ -19,7 +19,9 @@ flowchart TD
     Today --> Detail[详情抽屉]
     History[历史简报] --> Detail
     Library[信息库] --> Detail
-    Library --> SaveSearch[保存搜索弹窗]
+    Library --> SaveSearch[保存当前搜索]
+    Library --> Analytics[数据概览图表]
+    Analytics --> LibraryFilter[反向更新筛选条件]
     SaveSearch --> Following[我的关注]
     Today --> Following
     Following --> Today
@@ -75,17 +77,16 @@ flowchart TD
     A[进入信息库] --> B[输入关键词]
     B --> C[选择来源/来源类型/分类/状态/时间范围]
     C --> D[检索已采集入库内容]
-    D --> E{是否有结果}
-    E -- 是 --> F[展示结果列表]
-    E -- 否 --> G[展示站内无结果空状态]
-    F --> H{用户操作}
-    H -- 查看详情 --> I[打开详情抽屉]
-    H -- 保存搜索 --> J[打开保存搜索弹窗]
-    J --> K[输入规则名称]
-    K --> L{是否为站内检索条件}
-    L -- 是 --> M[保存到我的关注]
-    L -- 否 --> N[拒绝保存外部 URL 或实时检索条件]
-    M --> O[在我的关注页展示该规则]
+    D --> E[同步加载数据概览]
+    E --> F{是否有结果}
+    F -- 是 --> G[展示结果列表和详情面板]
+    F -- 否 --> H[展示站内无结果空状态]
+    G --> I{用户操作}
+    I -- 查看详情 --> J[打开详情抽屉]
+    I -- 保存当前搜索 --> K[保存到我的关注]
+    I -- 点击图表项 --> L[反向写入来源类型/分类/最低分]
+    L --> D
+    K --> M[参与我的关注流排序和过滤]
 ```
 
 ## 5. 我的关注配置流程

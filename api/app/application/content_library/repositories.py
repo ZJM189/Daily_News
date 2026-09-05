@@ -1,7 +1,12 @@
 from typing import Protocol
 from uuid import UUID
 
-from app.application.content_library.dtos import LibraryItemDTO, LibrarySearchQuery
+from app.application.content_library.dtos import (
+    LibraryAnalyticsDTO,
+    LibraryAnalyticsQuery,
+    LibraryItemDTO,
+    LibrarySearchQuery,
+)
 
 
 class ContentLibraryRepository(Protocol):
@@ -15,4 +20,7 @@ class ContentLibraryRepository(Protocol):
         raise NotImplementedError
 
     def get_item(self, item_id: UUID) -> LibraryItemDTO | None:
+        raise NotImplementedError
+
+    def get_analytics(self, *, query: LibraryAnalyticsQuery) -> LibraryAnalyticsDTO:
         raise NotImplementedError

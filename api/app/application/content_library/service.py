@@ -1,6 +1,11 @@
 from uuid import UUID
 
-from app.application.content_library.dtos import LibraryItemDTO, LibrarySearchQuery
+from app.application.content_library.dtos import (
+    LibraryAnalyticsDTO,
+    LibraryAnalyticsQuery,
+    LibraryItemDTO,
+    LibrarySearchQuery,
+)
 from app.application.content_library.repositories import ContentLibraryRepository
 from app.application.identity.dtos import UserDTO
 
@@ -39,6 +44,25 @@ class ContentLibraryService:
     def get_item(self, *, actor: UserDTO, item_id: UUID) -> LibraryItemDTO | None:
         del actor
         return self._repository.get_item(item_id)
+
+    def get_analytics(
+        self,
+        *,
+        actor: UserDTO,
+        query: LibraryAnalyticsQuery,
+    ) -> LibraryAnalyticsDTO:
+        del actor
+        normalized_query = LibraryAnalyticsQuery(
+            keyword=_clean_text(query.keyword),
+            category=query.category,
+            source_type=query.source_type,
+            source_id=query.source_id,
+            status=query.status,
+            min_score=query.min_score,
+            has_summary=query.has_summary,
+            window_days=query.window_days if query.window_days and query.window_days > 0 else None,
+        )
+        return self._repository.get_analytics(query=normalized_query)
 
 
 def _clean_text(value: str | None) -> str | None:

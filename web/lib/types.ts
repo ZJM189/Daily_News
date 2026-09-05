@@ -104,6 +104,42 @@ export type LibraryItem = {
   updated_at: string;
 };
 
+export type LibraryAnalyticsTotals = {
+  item_count: number;
+  summarized_count: number;
+  summary_rate: number;
+  source_count: number;
+  average_score: number;
+};
+
+export type LibraryAnalyticsTrendPoint = {
+  date: string;
+  count: number;
+};
+
+export type LibraryAnalyticsDimension = {
+  key: string;
+  label: string;
+  value: number;
+};
+
+export type LibraryAnalyticsScoreBucket = {
+  key: string;
+  label: string;
+  min_score: number | null;
+  max_score: number | null;
+  value: number;
+};
+
+export type LibraryAnalytics = {
+  totals: LibraryAnalyticsTotals;
+  trend: LibraryAnalyticsTrendPoint[];
+  source_types: LibraryAnalyticsDimension[];
+  sources: LibraryAnalyticsDimension[];
+  categories: LibraryAnalyticsDimension[];
+  score_buckets: LibraryAnalyticsScoreBucket[];
+};
+
 export type UserPreference = {
   follow_keywords: string[];
   exclude_keywords: string[];

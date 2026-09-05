@@ -169,6 +169,52 @@ class PaginatedLibraryItemsResponse(BaseModel):
     meta: dict[str, int]
 
 
+class LibraryAnalyticsTotalsResponse(BaseModel):
+    item_count: int
+    summarized_count: int
+    summary_rate: float
+    source_count: int
+    average_score: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LibraryAnalyticsTrendPointResponse(BaseModel):
+    date: date
+    count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LibraryAnalyticsDimensionResponse(BaseModel):
+    key: str
+    label: str
+    value: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LibraryAnalyticsScoreBucketResponse(BaseModel):
+    key: str
+    label: str
+    min_score: float | None
+    max_score: float | None
+    value: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LibraryAnalyticsResponse(BaseModel):
+    totals: LibraryAnalyticsTotalsResponse
+    trend: list[LibraryAnalyticsTrendPointResponse]
+    source_types: list[LibraryAnalyticsDimensionResponse]
+    sources: list[LibraryAnalyticsDimensionResponse]
+    categories: list[LibraryAnalyticsDimensionResponse]
+    score_buckets: list[LibraryAnalyticsScoreBucketResponse]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserPreferenceResponse(BaseModel):
     follow_keywords: list[str]
     exclude_keywords: list[str]

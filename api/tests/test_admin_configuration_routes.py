@@ -26,6 +26,7 @@ def test_admin_configuration_routes_are_registered() -> None:
         "/api/v1/admin/scheduler/configs/{config_id}",
         "/api/v1/digests/today",
         "/api/v1/digests/{digest_date}",
+        "/api/v1/library/analytics",
         "/api/v1/library/items",
         "/api/v1/library/items/{item_id}",
         "/api/v1/following/preferences",
