@@ -3,6 +3,8 @@
 [简体中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat&logo=python&logoColor=white)](api/pyproject.toml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-3178C6?style=flat&logo=typescript&logoColor=white)](web/package.json)
 [![GitHub Stars](https://img.shields.io/github/stars/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/network/members)
 [![GitHub Issues](https://img.shields.io/github/issues/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/issues)
