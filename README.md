@@ -2,6 +2,13 @@
 
 [简体中文](README.md) | [English](README.en.md)
 
+[![CI](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/commits/main/)
+[![Top Language](https://img.shields.io/github/languages/top/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News)
+
 Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动采集多来源内容，完成标准化、评分、专题聚合、中文摘要和来源规则分类，并按天生成可浏览的 AI 情报简报。
 
 项目适合部署在单台云服务器上，通过 Docker Compose 启动前端、后端、数据库、缓存、后台任务、定时调度和反向代理。

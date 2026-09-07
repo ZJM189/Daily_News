@@ -2,6 +2,13 @@
 
 [Simplified Chinese](README.md) | [English](README.en.md)
 
+[![CI](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News/commits/main/)
+[![Top Language](https://img.shields.io/github/languages/top/ZJM189/Daily_News?style=flat)](https://github.com/ZJM189/Daily_News)
+
 Daily News is a multi-user web dashboard for AI news intelligence. It collects content from multiple sources, normalizes and scores items, groups topics, generates Chinese summaries, classifies source rules, and publishes browsable daily AI briefings.
 
 The project is designed for single-server deployment with Docker Compose, running the web app, API, database, cache, background worker, scheduler, and reverse proxy together.
