@@ -11,6 +11,7 @@ Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动
 - 多厂商 LLM：支持 OpenAI-compatible 接口，可配置 OpenAI、DeepSeek、通义千问等兼容服务。
 - 多用户账号：不开放公开注册，只允许管理员创建用户、禁用用户和重置密码。
 - 个性化关注：关注关键词软加权，排除关键词硬过滤，支持分类、来源类型、屏蔽来源和保存搜索。
+- 私有收藏：信息库、条目详情和关注流支持收藏，提供单层目录、移动、检索分页及删除目录后移回根目录。
 - 动态数据洞察：信息库支持折叠数据大屏、入库趋势、来源分布、分类分布、分数分布和摘要覆盖率统计。
 - 框架化 Web UI：侧边栏、页面标题、卡片、指标、提示、分页和表格使用统一的后台组件风格。
 - Web 工作台：今日简报、历史简报、信息库、我的关注、任务日志、用户管理、来源管理、LLM 管理、调度管理。
@@ -88,6 +89,7 @@ API Key：你的 API Key
 | `/history` | 按日期查看历史简报 |
 | `/library` | 全量信息库检索、折叠数据大屏、筛选卡片、列表和详情面板 |
 | `/following` | 个性化关注流、偏好配置卡片、生效规则预览和反馈 |
+| `/favorites` | 我的收藏，按目录查看、搜索筛选、移动与取消收藏 |
 | `/admin/users` | 管理员创建用户、禁用用户、重置密码，采用表单卡片和数据表卡片 |
 | `/admin/sources` | 数据源和凭据管理，采用表单卡片和数据表卡片 |
 | `/admin/llm` | LLM Provider 管理，采用表单卡片和 Provider 表格 |
@@ -201,6 +203,10 @@ docker compose exec -T postgres pg_dump -U daily_news -d daily_news -Fc > backup
 恢复流程见 [运维手册](docs/operations.md)。
 
 ## 开发验证
+
+收藏功能的产品规则见 [收藏设计](docs/product/favorites.md)，数据库迁移为 `202609060001`。升级现有环境时先执行 `docker compose exec api alembic upgrade head`，再启动新版 Web。
+
+收藏的 PostgreSQL 集成测试和桌面/手机浏览器 E2E 运行方式见 [收藏测试说明](docs/testing/favorites.md)。
 
 后端：
 

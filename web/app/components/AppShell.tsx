@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Bell,
+  Bookmark,
   BrainCircuit,
   CalendarClock,
   Database,
@@ -20,6 +21,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { apiPost, getCurrentUser } from "../../lib/api";
 import type { User } from "../../lib/types";
+import { FavoritesProvider } from "./FavoritesProvider";
 
 type NavItem = {
   href: string;
@@ -32,7 +34,8 @@ const primaryNav: NavItem[] = [
   { href: "/today", label: "今日简报", description: "当天精选", icon: Newspaper },
   { href: "/history", label: "历史简报", description: "按天回溯", icon: History },
   { href: "/library", label: "信息库", description: "全量检索", icon: Database },
-  { href: "/following", label: "我的关注", description: "个性化流", icon: Bell }
+  { href: "/following", label: "我的关注", description: "个性化流", icon: Bell },
+  { href: "/favorites", label: "我的收藏", description: "保存的内容", icon: Bookmark }
 ];
 
 const adminNav: NavItem[] = [
@@ -167,7 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        {children}
+        <FavoritesProvider key={user?.id}>{children}</FavoritesProvider>
       </div>
     </div>
   );

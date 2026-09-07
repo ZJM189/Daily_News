@@ -1,5 +1,24 @@
 # AI 热点信息每日汇总 API 接口文档
 
+## 收藏接口增量（2026-09-06）
+
+以下路径均以 `/api/v1/favorites` 为前缀，要求登录，用户身份取自会话；请求体不允许传入 `user_id`。
+
+| 方法 | 路径 | 功能 |
+| --- | --- | --- |
+| GET | `/folders` | 返回 `folders[{id,name,count}]`、`total`、`root_count`、动态 `categories` 和 `source_types` |
+| POST | `/folders` | `{name}` 新建目录，成功 201，同名冲突 409 |
+| PATCH | `/folders/{folder_id}` | `{name}` 重命名 |
+| DELETE | `/folders/{folder_id}` | 删除目录并将内容移回根目录 |
+| GET | `/status?item_ids=UUID&item_ids=UUID` | 批量查询当前用户已收藏状态，最多 100 个 ID |
+| GET | `/items` | 分页返回收藏条目及目录、收藏时间 |
+| PUT | `/items/{item_id}` | `{folder_id: UUID 或 null}` 幂等收藏/移动；省略目录为根目录 |
+| DELETE | `/items/{item_id}` | 幂等取消收藏 |
+
+列表参数：`scope=all/root/folder`（默认 all），`folder_id`（folder 范围必填），`keyword`（最多 200 字符）、`category`、`source_type`、`sort=saved/published/score`、`page>=1`、`page_size=1..100`。返回 `{data:[{item,folder_id,created_at}],meta:{page,page_size,total}}`。结果使用稳定排序，关键词按字面匹配 `%` 和 `_`。
+
+目录不存在或不属于当前用户均返回 404；参数无效为 422，未登录为 401。目录和状态查询只返回当前用户数据，管理员也不例外。
+
 版本：v0.1
 
 日期：2026-09-02

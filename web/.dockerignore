@@ -4,4 +4,6 @@ out/
 dist/
 build/
 coverage/
+test-results/
+playwright-report/
 npm-debug.log*

@@ -6,8 +6,9 @@ from app.application.identity.dtos import UserDTO
 from app.application.identity.service import IdentityService
 from app.application.identity.tokens import hash_ip_address
 from app.domain.identity.exceptions import AuthenticationFailed, UserDisabled
-from app.infrastructure.config import Settings, get_settings
+from app.infrastructure.config import Settings
 from app.interfaces.http.dependencies import (
+    get_app_settings,
     get_current_user,
     get_identity_service,
     get_session_token,
@@ -18,12 +19,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
-def login(
+async def login(
     payload: LoginRequest,
     request: Request,
     response: Response,
     identity_service: Annotated[IdentityService, Depends(get_identity_service)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> dict[str, object]:
     try:
         session = identity_service.login(
@@ -55,12 +56,12 @@ def login(
 
 
 @router.post("/logout")
-def logout(
+async def logout(
     response: Response,
     token: Annotated[str | None, Depends(get_session_token)],
     _current_user: Annotated[UserDTO, Depends(get_current_user)],
     identity_service: Annotated[IdentityService, Depends(get_identity_service)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> dict[str, object]:
     if token:
         identity_service.logout(token)
@@ -73,5 +74,5 @@ def logout(
 
 
 @router.get("/me")
-def me(current_user: Annotated[UserDTO, Depends(get_current_user)]) -> dict[str, object]:
+async def me(current_user: Annotated[UserDTO, Depends(get_current_user)]) -> dict[str, object]:
     return {"data": UserResponse.model_validate(current_user)}

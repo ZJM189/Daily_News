@@ -1,0 +1,510 @@
+.favoriteIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+.favoriteIconButton:hover {
+  background: #e9efed;
+  color: var(--primary);
+}
+.favoriteIconButton.isSaved {
+  color: var(--primary);
+  background: #edf7f2;
+}
+.favoriteIconButton:focus-visible,
+.favoriteTitleButton:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.favoriteIconButton svg {
+  flex-shrink: 0;
+}
+.favoritesWorkspace {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 28px;
+}
+.favoritesFolders {
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  padding-right: 16px;
+}
+.favoritesFolderHeading,
+.favoritesListHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+.favoritesFolderHeading h2,
+.favoritesListHeading h2 {
+  font-size: 17px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.favoritesFolderHeading h2 {
+  flex: 1;
+}
+.favoritesFolderNav {
+  display: grid;
+  gap: 5px;
+}
+.favoritesFolderNav > button,
+.favoritesFolderRow > button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  min-height: 42px;
+  padding: 9px 8px;
+  font-weight: 400;
+}
+.favoritesFolderNav button.active {
+  background: #e6f1ec;
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+.favoritesFolderNav button:hover {
+  background: #edf1f3;
+}
+.favoritesFolderNav button span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.favoritesFolderNav button svg,
+.favoritesFolderNav small {
+  flex-shrink: 0;
+}
+.favoritesFolderNav small {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.favoritesFolderLabel {
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin: 14px 8px 6px;
+}
+.favoritesFolderRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.favoritesMobileFolder {
+  display: none;
+}
+.favoritesMain {
+  min-width: 0;
+}
+.favoritesFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.favoritesField {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
+}
+.favoritesField input,
+.favoritesField select {
+  width: 100%;
+  min-width: 0;
+  color: var(--text);
+}
+.favoritesSearch {
+  flex: 1 1 200px;
+}
+.favoritesFilters > button {
+  min-height: 40px;
+}
+.favoritesList {
+  position: relative;
+  min-height: 240px;
+}
+.favoritesLoading {
+  padding: 18px 0;
+  color: var(--muted);
+}
+.favoritesList[aria-busy="true"] .favoriteEntry {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.favoriteEntry {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.favoriteEntryTitle {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+}
+.favoriteTitleButton {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  text-align: left;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.favoriteTitleButton:hover {
+  color: var(--primary);
+  background: transparent;
+}
+.favoriteSummary {
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.favoriteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.favoriteMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.favoriteMeta svg {
+  flex-shrink: 0;
+}
+.favoriteEntryFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.favoriteEntryActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.favoritesEmpty {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.favoritesEmpty h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.favoriteFolderMenu {
+  position: relative;
+  flex-shrink: 0;
+}
+.favoriteMenuOptions {
+  position: absolute;
+  z-index: 8;
+  right: 0;
+  top: 40px;
+  display: grid;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.favoriteMenuOptions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+}
+.favoriteMenuOptions button:hover {
+  background: #eef2f4;
+}
+.libraryFavoriteRow {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+.libraryFavoriteRow .libraryRow {
+  flex: 1;
+  min-width: 0;
+}
+.libraryFavoriteRow > .favoriteIconButton {
+  margin-top: 8px;
+}
+.favoritesDialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+}
+.favoritesDialog::backdrop {
+  background: rgb(17 24 39 / 35%);
+}
+.favoritesDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.favoritesDialogHeader h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.favoritesSelectedTitle {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  max-height: 90px;
+  overflow: auto;
+}
+.favoritesFolderPicker {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.favoritesFolderPicker label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.favoritesFolderPicker label:has(input:checked) {
+  background: #edf7f2;
+}
+.favoritesFolderPicker label span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.favoritesFolderPicker label small {
+  color: var(--muted);
+}
+.favoritesFolderPicker input[type="radio"] {
+  min-height: 16px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.favoritesDialogFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 18px;
+}
+.favoritesDialogFooter .favoritesDanger {
+  margin-right: auto;
+  color: var(--danger);
+}
+.favoritesInlineForm {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.favoritesInlineForm label {
+  flex: 1 1 160px;
+}
+.favoritesInlineForm button,
+.favoritesDialogFooter button {
+  min-height: 40px;
+}
+.favoritesDialog .ghostButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.favoritesDeleteCopy {
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.favoritesError {
+  color: var(--danger);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.favoritesDrawer {
+  width: min(560px, 100%);
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+  padding: 28px;
+}
+.favoriteDetail h3 {
+  font-size: 22px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.favoriteDetail p {
+  font-size: 15px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.favoriteDetail .tagList {
+  flex-wrap: wrap;
+}
+.favoriteDetail .tagList span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.favoritesToast {
+  position: fixed;
+  z-index: 30;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+.favoritesToast span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.favoritesBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  color: var(--danger);
+  background: #fff2f0;
+  font-size: 14px;
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 1100px) {
+  .favoritesWorkspace {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+@media (max-width: 760px) {
+  .favoritesWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .favoritesFolders {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 0 0 18px;
+  }
+  .favoritesFolderHeading {
+    margin-bottom: 8px;
+  }
+  .favoritesFolderNav {
+    display: none;
+  }
+  .favoritesMobileFolder {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .favoritesMobileFolder select {
+    width: 100%;
+    min-width: 0;
+  }
+  .favoritesFilters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .favoritesSearch {
+    grid-column: 1 / -1;
+  }
+  .favoriteEntryFooter {
+    flex-wrap: wrap;
+  }
+  .favoriteEntryActions {
+    margin-left: auto;
+  }
+  .favoritesDialog {
+    padding: 18px;
+  }
+  .favoritesDrawer {
+    padding: 22px 18px;
+  }
+}

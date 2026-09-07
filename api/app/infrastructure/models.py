@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -191,6 +192,41 @@ class User(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="SET NULL")
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class FavoriteFolder(Base, TimestampMixin):
+    __tablename__ = "favorite_folders"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="ux_favorite_folders_user_name"),
+        UniqueConstraint("user_id", "id", name="ux_favorite_folders_user_id"),
+        CheckConstraint("length(trim(name)) > 0", name="ck_favorite_folders_name"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+
+
+class Favorite(Base, TimestampMixin):
+    __tablename__ = "favorites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "item_id", name="ux_favorites_user_item"),
+        ForeignKeyConstraint(
+            ["user_id", "folder_id"], ["favorite_folders.user_id", "favorite_folders.id"],
+            name="fk_favorites_owned_folder",
+        ),
+        Index("idx_favorites_user_created", "user_id", "created_at"),
+        Index("idx_favorites_user_folder", "user_id", "folder_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("items.id"), nullable=False)
+    folder_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
 
 class AuthSession(Base):

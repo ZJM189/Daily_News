@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { LibraryAnalyticsPanel } from "../components/LibraryAnalyticsPanel";
 import { PaginationBar } from "../components/PaginationBar";
+import { FavoriteButton, useFavoriteItems } from "../components/FavoritesProvider";
 import { CardHeader, Notice, PageHeader, PageScaffold, SurfaceCard } from "../components/UiPrimitives";
 import { createSavedSearch, getLibraryAnalytics, searchLibraryItems } from "../../lib/api";
 import type {
@@ -73,6 +74,7 @@ export default function LibraryPage() {
   const [pageSize, setPageSize] = useState(20);
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<LibraryItem[]>([]);
+  useFavoriteItems(items);
   const [analytics, setAnalytics] = useState<LibraryAnalytics | null>(null);
   const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -335,8 +337,8 @@ export default function LibraryPage() {
           ) : null}
           {!loading
             ? items.map((item) => (
+                <article className="libraryFavoriteRow" key={item.id}>
                 <button
-                  key={item.id}
                   className={`libraryRow ${selectedItem?.id === item.id ? "active" : ""}`}
                   type="button"
                   onClick={() => setSelectedId(item.id)}
@@ -352,6 +354,8 @@ export default function LibraryPage() {
                     <span>{formatDate(item.published_at || item.collected_at)}</span>
                   </span>
                 </button>
+                <FavoriteButton item={item} />
+                </article>
               ))
             : null}
           <PaginationBar
@@ -366,6 +370,7 @@ export default function LibraryPage() {
           {selectedItem ? (
             <>
               <div className="detailHeader">
+                <FavoriteButton item={selectedItem} />
                 <span className="statusBadge">{selectedItem.status}</span>
                 <span className="statusBadge">{selectedItem.summary_zh ? "已摘要" : "待摘要"}</span>
               </div>

@@ -26,7 +26,7 @@ SORT_PATTERN = r"^(latest|score|collected)$"
 
 
 @router.get("/items")
-def search_items(
+async def search_items(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[ContentLibraryService, Depends(get_content_library_service)],
     keyword: Annotated[str | None, Query(max_length=200)] = None,
@@ -66,7 +66,7 @@ def search_items(
 
 
 @router.get("/analytics")
-def get_library_analytics(
+async def get_library_analytics(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[ContentLibraryService, Depends(get_content_library_service)],
     keyword: Annotated[str | None, Query(max_length=200)] = None,
@@ -95,7 +95,7 @@ def get_library_analytics(
 
 
 @router.get("/items/{item_id}")
-def get_item(
+async def get_item(
     item_id: UUID,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[ContentLibraryService, Depends(get_content_library_service)],

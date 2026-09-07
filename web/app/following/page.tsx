@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { PaginationBar } from "../components/PaginationBar";
+import { FavoriteButton, useFavoriteItems } from "../components/FavoritesProvider";
 import { CardHeader, Notice, PageHeader, PageScaffold } from "../components/UiPrimitives";
 import { createFeedback, getUserPreference, listFollowingItems, saveUserPreference } from "../../lib/api";
 import type { FollowingItem, PageMeta, UserPreference } from "../../lib/types";
@@ -42,6 +43,7 @@ export default function FollowingPage() {
   const [excludeInput, setExcludeInput] = useState("");
   const [domainInput, setDomainInput] = useState("");
   const [feed, setFeed] = useState<FollowingItem[]>([]);
+  useFavoriteItems(feed.map((entry) => entry.item));
   const [meta, setMeta] = useState<PageMeta>({ page: 1, page_size: 20, total: 0 });
   const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
@@ -346,6 +348,7 @@ export default function FollowingPage() {
                     ))}
                   </div>
                   <div className="itemActions">
+                    <FavoriteButton item={entry.item} />
                     <button className="ghostButton" type="button" onClick={() => void handleFeedback(entry, "more_like")}>
                       多看类似
                     </button>

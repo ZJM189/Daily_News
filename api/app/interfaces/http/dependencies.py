@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
@@ -19,19 +19,31 @@ from app.infrastructure.digest_publishing.factory import create_digest_query_ser
 from app.infrastructure.identity.repositories import SqlAlchemyIdentityRepository
 from app.infrastructure.job_operations.repositories import SqlAlchemyJobOperationsRepository
 from app.infrastructure.llm_operations.repositories import SqlAlchemyLLMProviderRepository
-from app.infrastructure.persistence import iter_session
+from app.infrastructure.persistence import get_session_factory
 from app.infrastructure.personalization.factory import create_personalization_service
 from app.infrastructure.secrets import SecretCipher
 from app.infrastructure.source_management.repositories import SqlAlchemySourceManagementRepository
 
 
-def get_db_session() -> Iterator[Session]:
-    yield from iter_session()
+async def get_app_settings() -> Settings:
+    return get_settings()
 
 
-def get_identity_service(
+async def get_db_session() -> AsyncIterator[Session]:
+    session = get_session_factory()()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+async def get_identity_service(
     session: Annotated[Session, Depends(get_db_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> IdentityService:
     return IdentityService(
         SqlAlchemyIdentityRepository(session),
@@ -40,9 +52,9 @@ def get_identity_service(
     )
 
 
-def get_source_management_service(
+async def get_source_management_service(
     session: Annotated[Session, Depends(get_db_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> SourceManagementService:
     return SourceManagementService(
         SqlAlchemySourceManagementRepository(session),
@@ -50,9 +62,9 @@ def get_source_management_service(
     )
 
 
-def get_llm_provider_service(
+async def get_llm_provider_service(
     session: Annotated[Session, Depends(get_db_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> LLMProviderService:
     return LLMProviderService(
         SqlAlchemyLLMProviderRepository(session),
@@ -60,51 +72,51 @@ def get_llm_provider_service(
     )
 
 
-def get_job_operations_service(
+async def get_job_operations_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> JobOperationsService:
     return JobOperationsService(SqlAlchemyJobOperationsRepository(session))
 
 
-def get_digest_query_service(
+async def get_digest_query_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> DigestQueryService:
     return create_digest_query_service(session)
 
 
-def get_content_library_service(
+async def get_content_library_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> ContentLibraryService:
     return create_content_library_service(session)
 
 
-def get_personalization_service(
+async def get_personalization_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> PersonalizationService:
     return create_personalization_service(session)
 
 
-def get_session_token(
+async def get_session_token(
     request: Request,
-    settings: Annotated[Settings, Depends(get_settings)],
-) -> str | None:
-    return request.cookies.get(settings.session_cookie_name)
-
-
-def get_current_user(
-    token: Annotated[str | None, Depends(get_session_token)],
-    identity_service: Annotated[IdentityService, Depends(get_identity_service)],
-) -> UserDTO:
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> str:
+    token = request.cookies.get(settings.session_cookie_name)
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+    return token
 
+
+async def get_current_user(
+    token: Annotated[str, Depends(get_session_token)],
+    identity_service: Annotated[IdentityService, Depends(get_identity_service)],
+) -> UserDTO:
     user = identity_service.get_user_by_session_token(token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
     return user
 
 
-def require_admin(current_user: Annotated[UserDTO, Depends(get_current_user)]) -> UserDTO:
+async def require_admin(current_user: Annotated[UserDTO, Depends(get_current_user)]) -> UserDTO:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FORBIDDEN")
     return current_user

@@ -48,3 +48,5 @@ logs/
 .DS_Store
 .idea/
 .vscode/
+web/test-results/
+web/playwright-report/

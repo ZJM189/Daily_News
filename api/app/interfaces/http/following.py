@@ -22,7 +22,7 @@ router = APIRouter(prefix="/following", tags=["following"])
 
 
 @router.get("/preferences")
-def get_preferences(
+async def get_preferences(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
 ) -> dict[str, object]:
@@ -31,7 +31,7 @@ def get_preferences(
 
 
 @router.put("/preferences")
-def update_preferences(
+async def update_preferences(
     payload: UpdateUserPreferenceRequest,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
@@ -53,7 +53,7 @@ def update_preferences(
 
 
 @router.get("/items")
-def list_following_items(
+async def list_following_items(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
     page: Annotated[int, Query(ge=1)] = 1,
@@ -67,7 +67,7 @@ def list_following_items(
 
 
 @router.get("/saved-searches")
-def list_saved_searches(
+async def list_saved_searches(
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
 ) -> dict[str, object]:
@@ -76,7 +76,7 @@ def list_saved_searches(
 
 
 @router.post("/saved-searches")
-def create_saved_search(
+async def create_saved_search(
     payload: CreateSavedSearchRequest,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
@@ -93,7 +93,7 @@ def create_saved_search(
 
 
 @router.patch("/saved-searches/{search_id}")
-def update_saved_search(
+async def update_saved_search(
     search_id: UUID,
     payload: UpdateSavedSearchRequest,
     actor: Annotated[UserDTO, Depends(get_current_user)],
@@ -115,7 +115,7 @@ def update_saved_search(
 
 
 @router.delete("/saved-searches/{search_id}")
-def delete_saved_search(
+async def delete_saved_search(
     search_id: UUID,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],
@@ -128,7 +128,7 @@ def delete_saved_search(
 
 
 @router.post("/feedback")
-def create_feedback(
+async def create_feedback(
     payload: CreateFeedbackRequest,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[PersonalizationService, Depends(get_personalization_service)],

@@ -1,5 +1,14 @@
 # AI 热点信息每日汇总数据库设计文档
 
+## 收藏增量（迁移 202609060001）
+
+- `favorite_folders`：`id`、`user_id`、`name VARCHAR(80)`、`created_at`、`updated_at`。同一用户下名称唯一，名称不得为空；应用层去首尾空格并保留“根目录”“全部收藏”名称。
+- `favorites`：`id`、`user_id`、`item_id`、可空 `folder_id`、`created_at`、`updated_at`。`folder_id=NULL` 表示根目录，“全部收藏”不是存储目录。
+- 唯一约束 `(user_id, item_id)` 防止重复收藏；复合外键 `(user_id, folder_id)` 约束目录必须属于同一用户。
+- 删除目录的事务先将其收藏的 `folder_id` 置空，再删除目录；同一用户的写操作通过用户行锁串行化，避免移动与删除竞争。
+- 用户删除时级联清理其收藏和目录。收藏引用的条目不允许直接硬删除；取消收藏不删除条目，摘要和分数读取条目最新值。
+- 索引覆盖 `(user_id, created_at)` 和 `(user_id, folder_id)`；移动保留原始收藏时间。
+
 版本：v0.1
 
 日期：2026-09-02
