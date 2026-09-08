@@ -5,11 +5,26 @@ from app.application.content_library.dtos import (
     LibraryAnalyticsDTO,
     LibraryAnalyticsQuery,
     LibraryItemDTO,
+    LibraryLLMProviderDTO,
     LibrarySearchQuery,
 )
 
 
 class ContentLibraryRepository(Protocol):
+    def get_default_llm_provider(self) -> LibraryLLMProviderDTO | None:
+        raise NotImplementedError
+
+    def log_llm_query(
+        self,
+        *,
+        provider: LibraryLLMProviderDTO | None,
+        actor_id: UUID,
+        status: str,
+        latency_ms: int | None,
+        error_message: str | None,
+    ) -> None:
+        raise NotImplementedError
+
     def search_items(
         self,
         *,

@@ -16,6 +16,8 @@ def test_initial_schema_tables_are_registered() -> None:
         "digest_items",
         "user_preferences",
         "saved_searches",
+        "library_chat_threads",
+        "library_chat_messages",
         "user_feedback",
         "llm_providers",
         "prompt_versions",

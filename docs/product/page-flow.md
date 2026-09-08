@@ -1,5 +1,9 @@
 # AI 热点信息每日汇总系统页面流程
 
+## 自然语言信息库聊天流程（2026-09-08）
+
+登录后任意主页面 → 打开右下角悬浮信息库助手 → 加载用户最近会话与消息历史 → 输入自然语言 → `LibraryChatIntentClassifier` 判断是否属于信息库查询 → 范围外问题返回固定拒答 → 范围内问题调用默认 LLM Provider + DeepAgents 查询 Agent → Agent 通过 `search_library_database` 只读工具查询已入库内容 → SSE 流式展示状态、回答文本、结果预览和筛选 chips → 打开原文，或跳转信息库查看全部。LLM 不可用时降级为原句关键词检索，整个流程不触发外部实时检索。详见 [自然语言信息库检索需求](natural-language-library-search.md)。
+
 ## 收藏流程（2026-09-06）
 
 信息库/条目详情/关注流 → 收藏图标 → 无目录时直接存根目录；有目录时选择目录 → 确认收藏 → 我的收藏。已收藏图标打开管理弹窗，可移动或取消收藏。我的收藏 → 目录菜单 → 新建/重命名/删除；删除目录确认后，其内容移至根目录。详情抽屉关闭后保留当前目录、筛选和页码。详见 [收藏设计](favorites.md)。
@@ -23,6 +27,7 @@ flowchart TD
     Today --> Detail[详情抽屉]
     History[历史简报] --> Detail
     Library[信息库] --> Detail
+    FloatingChat[信息库悬浮聊天助手] --> Library
     Library --> SaveSearch[保存当前搜索]
     Library --> Analytics[数据概览图表]
     Analytics --> LibraryFilter[反向更新筛选条件]
@@ -33,6 +38,33 @@ flowchart TD
     AdminJobs[任务日志] --> JobDetail[任务详情]
     AdminLLM[LLM 设置] --> LLMForm[新增/编辑 Provider 表单卡片]
     AdminUsers[用户管理] --> UserForm[新增/编辑用户表单卡片]
+```
+
+## 1.1 自然语言悬浮聊天流程
+
+```mermaid
+flowchart TD
+    A[登录后进入任意主页面] --> B[打开信息库悬浮聊天助手]
+    B --> C[加载最近会话与消息历史]
+    C --> D[输入自然语言查询]
+    D --> E{输入是否合法}
+    E -- 否 --> F[展示输入校验提示]
+    E -- 是 --> G[保存用户消息]
+    G --> H{是否属于信息库查询}
+    H -- 否 --> I[保存并流式返回固定拒答]
+    H -- 是 --> J[调用默认 LLM Provider + DeepAgents]
+    J --> K{LLM 输出是否有效}
+    K -- 是 --> L[调用 search_library_database 查询已入库内容]
+    K -- 否 --> M[降级为原句关键词搜索]
+    L --> N[SSE 返回 delta 与 results]
+    M --> N
+    N --> O{是否有结果}
+    O -- 是 --> P[聊天气泡展示结果预览]
+    O -- 否 --> Q[展示站内无结果空状态]
+    P --> R{用户操作}
+    R -- 打开原文 --> S[外部原文]
+    R -- 查看全部 --> T[跳转信息库并回填筛选]
+    Q --> U[提示仅搜索已入库内容]
 ```
 
 ## 2. 登录与访问流程

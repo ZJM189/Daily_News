@@ -15,11 +15,23 @@ from app.application.content_library.dtos import (
     LibraryAnalyticsTotalsDTO,
     LibraryAnalyticsTrendPointDTO,
     LibraryItemDTO,
+    LibraryLLMProviderDTO,
     LibrarySearchQuery,
     LibrarySourceDTO,
 )
 from app.application.content_library.repositories import ContentLibraryRepository
-from app.infrastructure.models import CategoryCode, Item, ItemStatus, Source, SourceType
+from app.infrastructure.config import get_settings
+from app.infrastructure.models import (
+    CategoryCode,
+    Item,
+    ItemStatus,
+    LLMCallLog,
+    LLMCallStatus,
+    LLMProvider,
+    Source,
+    SourceType,
+)
+from app.infrastructure.secrets import SecretCipher
 
 _CATEGORY_LABELS = {
     "model_company": "模型公司",
@@ -51,6 +63,54 @@ _SCORE_BUCKETS = (
 class SqlAlchemyContentLibraryRepository(ContentLibraryRepository):
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def get_default_llm_provider(self) -> LibraryLLMProviderDTO | None:
+        provider = self._session.scalar(
+            select(LLMProvider)
+            .where(LLMProvider.enabled.is_(True), LLMProvider.is_default.is_(True))
+            .limit(1)
+        )
+        if provider is None:
+            return None
+        api_key = (
+            SecretCipher(get_settings().encryption_key).decrypt(provider.encrypted_api_key)
+            if provider.encrypted_api_key
+            else None
+        )
+        return LibraryLLMProviderDTO(
+            id=provider.id,
+            name=provider.name,
+            base_url=provider.base_url,
+            model=provider.model,
+            api_key=api_key,
+            timeout_seconds=provider.timeout_seconds,
+            retry_count=provider.retry_count,
+        )
+
+    def log_llm_query(
+        self,
+        *,
+        provider: LibraryLLMProviderDTO | None,
+        actor_id: UUID,
+        status: str,
+        latency_ms: int | None,
+        error_message: str | None,
+    ) -> None:
+        self._session.add(
+            LLMCallLog(
+                provider_id=provider.id if provider else None,
+                prompt_version_id=None,
+                object_type="library_search_query",
+                object_id=actor_id,
+                model=provider.model if provider else "unavailable",
+                status=LLMCallStatus(status if status in {"success", "failed"} else "failed"),
+                input_tokens=None,
+                output_tokens=None,
+                latency_ms=latency_ms,
+                error_message=error_message[:4000] if error_message else None,
+            )
+        )
+        self._session.flush()
 
     def search_items(
         self,
@@ -102,16 +162,10 @@ class SqlAlchemyContentLibraryRepository(ContentLibraryRepository):
         self, query: LibrarySearchQuery | LibraryAnalyticsQuery
     ) -> list[ColumnElement[bool]]:
         conditions: list[ColumnElement[bool]] = []
-        if query.keyword:
-            like_keyword = f"%{query.keyword}%"
+        search_terms = _search_terms(query)
+        if search_terms:
             conditions.append(
-                or_(
-                    Item.title.ilike(like_keyword),
-                    Item.summary_zh.ilike(like_keyword),
-                    Item.summary_original.ilike(like_keyword),
-                    Item.content_snippet.ilike(like_keyword),
-                    cast(Item.tags, Text).ilike(like_keyword),
-                )
+                or_(*[_keyword_condition(term) for term in search_terms])
             )
         if query.category is not None:
             conditions.append(Item.category == CategoryCode(query.category))
@@ -328,3 +382,29 @@ def _coerce_date(value: object) -> date:
     if isinstance(value, date):
         return value
     return date.fromisoformat(str(value))
+
+
+def _search_terms(query: LibrarySearchQuery | LibraryAnalyticsQuery) -> tuple[str, ...]:
+    terms = [term.strip() for term in query.search_terms if term and term.strip()]
+    if query.keyword and query.keyword.strip():
+        terms.append(query.keyword.strip())
+    result: list[str] = []
+    seen: set[str] = set()
+    for term in terms:
+        key = term.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(term[:80])
+    return tuple(result[:8])
+
+
+def _keyword_condition(term: str) -> ColumnElement[bool]:
+    like_keyword = f"%{term}%"
+    return or_(
+        Item.title.ilike(like_keyword),
+        Item.summary_zh.ilike(like_keyword),
+        Item.summary_original.ilike(like_keyword),
+        Item.content_snippet.ilike(like_keyword),
+        cast(Item.tags, Text).ilike(like_keyword),
+    )

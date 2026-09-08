@@ -11,6 +11,8 @@ from app.interfaces.http.dependencies import get_content_library_service, get_cu
 from app.interfaces.http.schemas import (
     LibraryAnalyticsResponse,
     LibraryItemResponse,
+    NaturalLanguageLibrarySearchRequest,
+    NaturalLanguageLibrarySearchResponse,
     PaginatedLibraryItemsResponse,
 )
 
@@ -23,6 +25,51 @@ CATEGORY_PATTERN = (
 SOURCE_TYPE_PATTERN = r"^(rss|hacker_news|github|arxiv|product_hunt|hugging_face)$"
 ITEM_STATUS_PATTERN = r"^(collected|normalized|deduped|ranked|summarized|selected|failed)$"
 SORT_PATTERN = r"^(latest|score|collected)$"
+
+
+@router.post("/natural-language-search")
+async def natural_language_search(
+    request: NaturalLanguageLibrarySearchRequest,
+    actor: Annotated[UserDTO, Depends(get_current_user)],
+    service: Annotated[ContentLibraryService, Depends(get_content_library_service)],
+) -> NaturalLanguageLibrarySearchResponse:
+    result = service.natural_language_search(
+        actor=actor,
+        query=request.query,
+        page_size=request.page_size,
+    )
+    interpreted_query = result.interpreted_query
+    return NaturalLanguageLibrarySearchResponse(
+        mode=result.mode,
+        explanation=result.explanation,
+        interpreted_query={
+            "keyword": interpreted_query.keyword,
+            "search_terms": list(interpreted_query.search_terms),
+            "category": interpreted_query.category,
+            "source_type": interpreted_query.source_type,
+            "source_id": interpreted_query.source_id,
+            "status": interpreted_query.status,
+            "published_from": interpreted_query.published_from,
+            "published_to": interpreted_query.published_to,
+            "min_score": interpreted_query.min_score,
+            "has_summary": interpreted_query.has_summary,
+            "sort": interpreted_query.sort,
+            "page_size": interpreted_query.page_size,
+        },
+        chips=[{"key": chip.key, "label": chip.label} for chip in result.chips],
+        data=[LibraryItemResponse.model_validate(item) for item in result.items],
+        meta={"page": result.page, "page_size": result.page_size, "total": result.total},
+        library_url=result.library_url,
+        llm=(
+            {
+                "provider": result.llm.provider,
+                "model": result.llm.model,
+                "confidence": result.llm.confidence,
+            }
+            if result.llm
+            else None
+        ),
+    )
 
 
 @router.get("/items")

@@ -22,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import { apiPost, getCurrentUser } from "../../lib/api";
 import type { User } from "../../lib/types";
 import { FavoritesProvider } from "./FavoritesProvider";
+import { LibraryChatWidget } from "./LibraryChatWidget";
 
 type NavItem = {
   href: string;
@@ -170,7 +171,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <FavoritesProvider key={user?.id}>{children}</FavoritesProvider>
+        <FavoritesProvider key={user?.id}>
+          {children}
+          <LibraryChatWidget />
+        </FavoritesProvider>
       </div>
     </div>
   );

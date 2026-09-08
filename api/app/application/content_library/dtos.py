@@ -38,6 +38,7 @@ class LibraryItemDTO:
 @dataclass(frozen=True, slots=True)
 class LibrarySearchQuery:
     keyword: str | None = None
+    search_terms: tuple[str, ...] = ()
     category: str | None = None
     source_type: str | None = None
     source_id: UUID | None = None
@@ -52,6 +53,7 @@ class LibrarySearchQuery:
 @dataclass(frozen=True, slots=True)
 class LibraryAnalyticsQuery:
     keyword: str | None = None
+    search_terms: tuple[str, ...] = ()
     category: str | None = None
     source_type: str | None = None
     source_id: UUID | None = None
@@ -100,3 +102,87 @@ class LibraryAnalyticsDTO:
     sources: list[LibraryAnalyticsDimensionDTO]
     categories: list[LibraryAnalyticsDimensionDTO]
     score_buckets: list[LibraryAnalyticsScoreBucketDTO]
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryLLMProviderDTO:
+    id: UUID
+    name: str
+    base_url: str
+    model: str
+    api_key: str | None
+    timeout_seconds: int
+    retry_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class InterpretedLibraryQueryDTO:
+    keyword: str | None = None
+    search_terms: tuple[str, ...] = ()
+    category: str | None = None
+    source_type: str | None = None
+    source_id: UUID | None = None
+    status: str | None = None
+    published_from: datetime | None = None
+    published_to: datetime | None = None
+    min_score: float | None = None
+    has_summary: bool | None = None
+    sort: str = "latest"
+    page_size: int = 10
+
+
+@dataclass(frozen=True, slots=True)
+class LibrarySearchChipDTO:
+    key: str
+    label: str
+
+
+@dataclass(frozen=True, slots=True)
+class LibrarySearchLLMDTO:
+    provider: str
+    model: str
+    confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryAgentParseDTO:
+    interpreted_query: InterpretedLibraryQueryDTO
+    explanation: str
+    confidence: float
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    latency_ms: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NaturalLanguageLibrarySearchDTO:
+    mode: str
+    explanation: str
+    interpreted_query: InterpretedLibraryQueryDTO
+    chips: list[LibrarySearchChipDTO]
+    items: list[LibraryItemDTO]
+    total: int
+    page: int
+    page_size: int
+    library_url: str
+    llm: LibrarySearchLLMDTO | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryChatThreadDTO:
+    id: UUID
+    user_id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryChatMessageDTO:
+    id: UUID
+    thread_id: UUID
+    user_id: UUID
+    role: str
+    content: str
+    metadata: dict[str, object]
+    created_at: datetime

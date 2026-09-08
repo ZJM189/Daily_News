@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserResponse(BaseModel):
@@ -167,6 +167,102 @@ class LibraryItemResponse(BaseModel):
 class PaginatedLibraryItemsResponse(BaseModel):
     data: list[LibraryItemResponse]
     meta: dict[str, int]
+
+
+class NaturalLanguageLibrarySearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=200)
+    page_size: int = Field(default=10, ge=1, le=20)
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("query must not be blank")
+        return cleaned
+
+
+class InterpretedLibraryQueryResponse(BaseModel):
+    keyword: str | None = None
+    search_terms: list[str] = Field(default_factory=list)
+    category: str | None = None
+    source_type: str | None = None
+    source_id: UUID | None = None
+    status: str | None = None
+    published_from: datetime | None = None
+    published_to: datetime | None = None
+    min_score: float | None = None
+    has_summary: bool | None = None
+    sort: str
+    page_size: int
+
+
+class LibrarySearchChipResponse(BaseModel):
+    key: str
+    label: str
+
+
+class LibrarySearchLLMResponse(BaseModel):
+    provider: str
+    model: str
+    confidence: float
+
+
+class NaturalLanguageLibrarySearchResponse(BaseModel):
+    mode: Literal["llm", "fallback"]
+    explanation: str
+    interpreted_query: InterpretedLibraryQueryResponse
+    chips: list[LibrarySearchChipResponse]
+    data: list[LibraryItemResponse]
+    meta: dict[str, int]
+    library_url: str
+    llm: LibrarySearchLLMResponse | None = None
+
+
+class CreateLibraryChatThreadRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class LibraryChatMessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=500)
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("content must not be blank")
+        return cleaned
+
+
+class LibraryChatThreadResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LibraryChatMessageResponse(BaseModel):
+    id: UUID
+    thread_id: UUID
+    user_id: UUID
+    role: Literal["user", "assistant"]
+    content: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LibraryAnalyticsTotalsResponse(BaseModel):

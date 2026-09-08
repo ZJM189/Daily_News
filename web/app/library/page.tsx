@@ -222,7 +222,17 @@ export default function LibraryPage() {
   }
 
   useEffect(() => {
-    void reloadLibrary(1, emptyFilters);
+    const params = new URLSearchParams(window.location.search);
+    const initialFilters: LibraryFilters = {
+      keyword: params.get("keyword") || emptyFilters.keyword,
+      category: params.get("category") || emptyFilters.category,
+      sourceType: params.get("source_type") || emptyFilters.sourceType,
+      sort: params.get("sort") || emptyFilters.sort,
+      minScore: params.get("min_score") || emptyFilters.minScore,
+      hasSummary: params.get("has_summary") || emptyFilters.hasSummary
+    };
+    applyFilters(initialFilters);
+    void reloadLibrary(1, initialFilters);
   }, []);
 
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.page_size));

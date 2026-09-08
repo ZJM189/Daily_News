@@ -4,8 +4,12 @@ import type {
   FollowingItem,
   JobRun,
   LibraryAnalytics,
+  LibraryChatMessage,
+  LibraryChatStreamEvent,
+  LibraryChatThread,
   LibraryItem,
   LLMProvider,
+  NaturalLanguageLibrarySearch,
   Paginated,
   SavedSearch,
   SchedulerConfig,
@@ -300,6 +304,112 @@ export async function searchLibraryItems(params: URLSearchParams): Promise<Pagin
       total: Number(payload.meta?.total ?? payload.data.length)
     }
   };
+}
+
+export async function naturalLanguageLibrarySearch(
+  query: string,
+  pageSize = 6
+): Promise<NaturalLanguageLibrarySearch> {
+  const response = await fetch("/api/v1/library/natural-language-search", {
+    method: "POST",
+    credentials: "include",
+    headers: JSON_HEADERS,
+    cache: "no-store",
+    body: JSON.stringify({ query, page_size: pageSize })
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  return (await response.json()) as NaturalLanguageLibrarySearch;
+}
+
+export function listLibraryChatThreads(limit = 20): Promise<LibraryChatThread[]> {
+  return apiGet<LibraryChatThread[]>(`/api/v1/library/chat/threads?limit=${limit}`);
+}
+
+export function createLibraryChatThread(title?: string): Promise<LibraryChatThread> {
+  return apiPost<LibraryChatThread>("/api/v1/library/chat/threads", { title });
+}
+
+export function listLibraryChatMessages(threadId: string): Promise<LibraryChatMessage[]> {
+  return apiGet<LibraryChatMessage[]>(`/api/v1/library/chat/threads/${threadId}/messages`);
+}
+
+export async function streamLibraryChatMessage(
+  threadId: string,
+  content: string,
+  onEvent: (event: LibraryChatStreamEvent) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const response = await fetch(`/api/v1/library/chat/threads/${threadId}/messages/stream`, {
+    method: "POST",
+    credentials: "include",
+    headers: JSON_HEADERS,
+    cache: "no-store",
+    signal,
+    body: JSON.stringify({ content })
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  if (!response.body) {
+    throw new Error("浏览器不支持流式响应");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let receivedDone = false;
+
+  while (!receivedDone) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() ?? "";
+
+    for (const eventText of events) {
+      const event = parseLibraryChatStreamEvent(eventText);
+      if (!event) continue;
+      onEvent(event);
+      if (event.event === "done") {
+        receivedDone = true;
+      }
+    }
+
+    if (done) break;
+  }
+
+  if (!receivedDone) {
+    const trailingEvent = parseLibraryChatStreamEvent(buffer);
+    if (trailingEvent) onEvent(trailingEvent);
+  }
+  await reader.cancel().catch(() => undefined);
+}
+
+function parseLibraryChatStreamEvent(rawEvent: string): LibraryChatStreamEvent | null {
+  const lines = rawEvent.trim().split(/\r?\n/);
+  let eventName: string | null = null;
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith("event:")) {
+      eventName = line.slice("event:".length).trim();
+    }
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice("data:".length).trimStart());
+    }
+  }
+
+  if (!eventName || !dataLines.length) return null;
+
+  try {
+    return {
+      event: eventName,
+      data: JSON.parse(dataLines.join("\n")) as unknown
+    } as LibraryChatStreamEvent;
+  } catch {
+    return null;
+  }
 }
 
 export function getLibraryAnalytics(params: URLSearchParams): Promise<LibraryAnalytics> {

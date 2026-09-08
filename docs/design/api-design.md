@@ -349,7 +349,173 @@
 - 图表维度使用动态数组返回，前端不写死具体来源名称。
 - 该接口不触发外部实时抓取，只统计已入库内容。
 
-### 6.3 条目详情
+### 6.3 兼容自然语言信息库检索
+
+`POST /api/v1/library/natural-language-search`
+
+请求：
+
+```json
+{
+  "query": "最近 7 天 RAG 相关论文",
+  "page_size": 10
+}
+```
+
+响应：
+
+```json
+{
+  "mode": "llm",
+  "explanation": "查询最近 7 天与 RAG 相关的研究论文",
+  "interpreted_query": {
+    "keyword": "RAG",
+    "search_terms": ["RAG", "retrieval augmented generation"],
+    "category": "research_paper",
+    "source_type": null,
+    "source_id": null,
+    "status": null,
+    "published_from": "2026-09-01T00:00:00+08:00",
+    "published_to": "2026-09-08T23:59:59+08:00",
+    "min_score": null,
+    "has_summary": null,
+    "sort": "latest",
+    "page_size": 10
+  },
+  "chips": [
+    { "key": "keyword", "label": "关键词：RAG" },
+    { "key": "category", "label": "分类：研究论文" }
+  ],
+  "data": [],
+  "meta": {
+    "page": 1,
+    "page_size": 10,
+    "total": 0
+  },
+  "llm": {
+    "provider": "Default Provider",
+    "model": "configured-model",
+    "confidence": 0.92
+  },
+  "library_url": "/library?keyword=RAG&category=research_paper&sort=latest"
+}
+```
+
+约束：
+
+- 仅查询已采集入库内容，不触发外部实时检索。
+- `query` 必填，1-200 字。
+- `page_size` 默认 10，最大 20。
+- 后端使用 DeepAgents 构建受限查询 Agent，Agent 只暴露 `search_library_database` 只读工具。
+- `search_library_database` 内部调用现有 `ContentLibraryService` 和 `ContentLibraryRepository`，不允许 Agent 直接访问 SQLAlchemy session 或拼接 SQL。
+- 默认调用后台配置的默认启用 LLM Provider，LLM 输出必须经过 JSON schema、枚举白名单、权限和数值范围校验。
+- LLM 只负责意图理解和 `search_terms` 扩展，不得生成 SQL、直接生成结果或触发外部请求。
+- `mode` 为 `llm` 时表示正常使用 LLM 解析，为 `fallback` 时表示 LLM 超时、不可用或输出校验失败，系统使用原句关键词搜索。
+- 解析失败时降级为关键词搜索，不返回 500。
+- 未登录返回 401，权限规则与信息库搜索一致。
+
+### 6.4 自然语言信息库聊天
+
+前端悬浮聊天助手使用以下接口。旧 `POST /api/v1/library/natural-language-search` 保留为兼容能力，但不承载聊天历史和流式输出。
+
+#### 6.4.1 会话列表
+
+`GET /api/v1/library/chat/threads?limit=20`
+
+响应：
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "title": "最近 7 天 RAG 论文",
+      "created_at": "2026-09-08T10:00:00+08:00",
+      "updated_at": "2026-09-08T10:02:00+08:00"
+    }
+  ]
+}
+```
+
+#### 6.4.2 创建会话
+
+`POST /api/v1/library/chat/threads`
+
+请求：
+
+```json
+{ "title": "新的智能查询" }
+```
+
+#### 6.4.3 消息历史
+
+`GET /api/v1/library/chat/threads/{thread_id}/messages`
+
+响应：
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "thread_id": "uuid",
+      "user_id": "uuid",
+      "role": "assistant",
+      "content": "查询 RAG 论文。共找到 12 条，先展示 6 条。",
+      "metadata": {
+        "mode": "llm",
+        "item_ids": ["uuid"],
+        "items": [],
+        "library_url": "/library?keyword=RAG&sort=latest"
+      },
+      "created_at": "2026-09-08T10:02:00+08:00"
+    }
+  ]
+}
+```
+
+#### 6.4.4 流式发送消息
+
+`POST /api/v1/library/chat/threads/{thread_id}/messages/stream`
+
+请求：
+
+```json
+{ "content": "最近 7 天 RAG 相关论文" }
+```
+
+响应为 `text/event-stream`：
+
+```text
+event: status
+data: {"message":"正在判断查询范围","message_id":"uuid"}
+
+event: delta
+data: {"message_id":"uuid","text":"查询 RAG 论文。"}
+
+event: results
+data: {"message_id":"uuid","items":[],"meta":{"page":1,"page_size":6,"total":0},"library_url":"/library?keyword=RAG&sort=latest","mode":"llm","chips":[],"llm":{"provider":"Default","model":"model","confidence":0.9}}
+
+event: rejected
+data: {"message":"我只能查询已入库的 AI 信息、论文、开源项目和产业动态。你可以试试：“最近 7 天 RAG 论文”或“GitHub 上高分 Agent 项目”。","message_id":"uuid","intent":"coding"}
+
+event: error
+data: {"message":"信息库查询暂时不可用，请稍后重试。","message_id":"uuid"}
+
+event: done
+data: {"message_id":"uuid"}
+```
+
+约束：
+
+- `content` 必填，1-500 字。
+- 后端先执行 `LibraryChatIntentClassifier`，拒绝范围外问题时只返回固定话术，不调用 DeepAgents 和数据库检索。
+- 允许范围内的问题进入 DeepAgents `LibrarySearchAgent`，Agent 仅暴露 `search_library_database` 只读工具。
+- `library_chat_threads` 和 `library_chat_messages` 按 `user_id` 隔离，未登录返回 401，不存在或不属于当前用户的会话返回 404。
+- `results.items` 只来自已入库数据，不触发外部实时检索或采集。
+
+### 6.5 条目详情
 
 `GET /api/v1/library/items/{item_id}`
 
@@ -392,7 +558,7 @@
 }
 ```
 
-### 6.4 Topic 详情
+### 6.6 Topic 详情
 
 `GET /api/v1/topics/{topic_id}`
 

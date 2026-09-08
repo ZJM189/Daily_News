@@ -229,6 +229,48 @@ class Favorite(Base, TimestampMixin):
     folder_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
 
+class LibraryChatThread(Base, TimestampMixin):
+    __tablename__ = "library_chat_threads"
+    __table_args__ = (
+        Index("idx_library_chat_threads_user_updated", "user_id", "updated_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+
+
+class LibraryChatMessage(Base):
+    __tablename__ = "library_chat_messages"
+    __table_args__ = (
+        CheckConstraint("role IN ('user', 'assistant')", name="ck_library_chat_messages_role"),
+        Index("idx_library_chat_messages_thread_created", "thread_id", "created_at"),
+        Index("idx_library_chat_messages_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    thread_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("library_chat_threads.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    message_metadata: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class AuthSession(Base):
     __tablename__ = "auth_sessions"
     __table_args__ = (

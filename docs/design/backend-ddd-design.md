@@ -62,6 +62,7 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 | Content Intelligence | 标准化 item、去重、topic 聚合、评分、摘要 | Item、Topic、Score、Summary |
 | Digest Publishing | 每日 digest 生成、版本、发布和历史快照 | Digest、DigestItem |
 | Personalization | 我的关注、保存搜索、反馈、user score | UserPreference、SavedSearch、UserFeedback |
+| Library Chat | 信息库聊天会话、消息历史、意图门控和自然语言查询编排 | LibraryChatThread、LibraryChatMessage、LibraryChatIntent |
 | LLM Operations | provider 配置、prompt 版本、调用记录 | LLMProvider、PromptVersion、LLMCallLog |
 | Job Operations | 后台任务状态、重跑、错误追踪 | JobRun |
 
@@ -143,6 +144,7 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - 去重优先级为 source external id、canonical URL、URL、标题归一化 hash。
 - 全局 score 不受用户偏好影响。
 - 摘要失败时 item 状态必须明确标记，不伪装成成功摘要。
+- 自然语言信息库查询只能通过已校验的筛选 DTO 访问 repository，不能让 LLM 直接生成 SQL 或外部请求。
 
 ### 4.5 Digest Publishing
 
@@ -180,7 +182,27 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - 排除关键词、关闭来源类型、屏蔽来源硬过滤。
 - 保存搜索只能保存站内搜索条件，不允许外部 URL 或实时外部检索配置。
 
-### 4.7 LLM Operations
+### 4.7 Library Chat
+
+聚合根：
+
+- `LibraryChatThread`
+- `LibraryChatMessage`
+
+应用服务：
+
+- `ContentLibraryChatService`
+- `LibraryChatIntentClassifier`
+- `LibrarySearchAgent`
+
+领域规则：
+
+- 聊天会话和消息按 `user_id` 隔离。
+- 范围外问题固定拒答，不调用 DeepAgents 和数据库检索。
+- 范围内问题只允许 DeepAgents 调用 `search_library_database` 只读工具。
+- 助手消息保存查询模式、意图、结果 ID、结果预览和跳转信息库 URL。
+
+### 4.8 LLM Operations
 
 聚合根：
 
@@ -195,7 +217,7 @@ external systems/PostgreSQL-Redis-source-APIs-LLM
 - LLM 输出必须经过 schema 校验。
 - provider 调用失败必须记录调用日志。
 
-### 4.8 Job Operations
+### 4.9 Job Operations
 
 聚合根：
 
@@ -237,7 +259,9 @@ domain/contents
 domain/digests
 application/identity
 application/sources
+application/content_library
 infrastructure/llm
+infrastructure/content_library
 interfaces/http/admin
 ```
 
@@ -281,6 +305,7 @@ interfaces/http/admin
 - `CollectSourceUseCase`
 - `GenerateDigestUseCase`
 - `SearchItemsQuery`
+- `ContentLibraryChatService`
 - `UpdateUserPreferenceUseCase`
 
 ### 6.3 Infrastructure
@@ -293,6 +318,7 @@ interfaces/http/admin
 - Redis lock 和 cache。
 - 外部 source collector 实现。
 - OpenAI-compatible LLM provider 实现。
+- DeepAgents 查询 Agent 和信息库聊天意图分类器实现。
 - 加密、哈希、密钥读取。
 
 ### 6.4 Interfaces
@@ -341,7 +367,7 @@ with uow:
 MVP 不引入独立读库，但在 application 层区分 command 和 query：
 
 - Command：创建用户、更新 source、触发采集、生成 digest、更新我的关注。
-- Query：今日简报、历史简报、信息库搜索、详情、任务列表。
+- Query：今日简报、历史简报、信息库搜索、详情、信息库聊天历史、任务列表。
 
 复杂列表查询可以使用 read model 或查询服务直接面向数据库优化，但不能把写入规则绕过领域聚合。
 

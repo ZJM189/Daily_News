@@ -45,7 +45,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -411,6 +412,669 @@ select:focus {
 .topbar span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.naturalSearchTrigger {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 0 17px;
+  box-shadow: 0 12px 26px rgba(15, 90, 76, 0.24);
+}
+
+.naturalSearchPanel {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 8;
+  width: min(430px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 48px));
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 20px 50px rgba(16, 24, 40, 0.2);
+  padding: 18px;
+}
+
+.naturalSearchHeader,
+.naturalSearchTitle,
+.naturalSearchResultSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.naturalSearchTitle {
+  justify-content: flex-start;
+}
+
+.naturalSearchTitle h2,
+.naturalSearchTitle p {
+  margin: 0;
+}
+
+.naturalSearchTitle h2 {
+  font-size: 17px;
+}
+
+.naturalSearchTitle p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.naturalSearchIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #edf7f4;
+  color: var(--primary-strong);
+}
+
+.iconButton {
+  display: inline-grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0;
+  background: #fff;
+  color: var(--muted);
+}
+
+.iconButton:hover {
+  color: var(--text);
+}
+
+.naturalSearchForm {
+  margin-top: 16px;
+}
+
+.naturalSearchInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding-left: 13px;
+  color: var(--muted);
+}
+
+.naturalSearchInputWrap:focus-within {
+  border-color: var(--primary);
+  outline: 2px solid rgba(23, 107, 91, 0.16);
+}
+
+.naturalSearchInputWrap input {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  outline: 0;
+  padding: 0;
+}
+
+.naturalSearchInputWrap input:focus {
+  outline: 0;
+}
+
+.naturalSearchSubmit {
+  display: inline-grid;
+  flex: 0 0 38px;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  margin-right: 4px;
+  border-radius: 6px;
+  padding: 0;
+}
+
+.naturalSearchExamples,
+.naturalSearchChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.naturalSearchExamples {
+  margin-top: 14px;
+}
+
+.naturalSearchExample,
+.naturalSearchChips span {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--surface-subtle);
+  color: #475467;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.naturalSearchExample:hover {
+  border-color: var(--primary);
+  background: #f3faf8;
+  color: var(--primary-strong);
+}
+
+.naturalSearchLoading,
+.naturalSearchError,
+.naturalSearchEmpty {
+  margin-top: 16px;
+  border-radius: 7px;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.naturalSearchLoading,
+.naturalSearchEmpty {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.naturalSearchError {
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.naturalSearchResults {
+  margin-top: 18px;
+}
+
+.naturalSearchResultSummary {
+  align-items: flex-start;
+}
+
+.naturalSearchResultSummary p {
+  margin: 8px 0 0;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.naturalSearchResultSummary strong {
+  flex: 0 0 auto;
+  color: var(--primary-strong);
+  font-size: 12px;
+}
+
+.naturalSearchMode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.naturalSearchMode.fallback {
+  color: var(--warning);
+}
+
+.naturalSearchChips {
+  margin-top: 13px;
+}
+
+.naturalSearchChips span {
+  display: inline-flex;
+  align-items: center;
+  background: #edf7f4;
+  border-color: #c8e5dd;
+  color: var(--primary-strong);
+}
+
+.naturalSearchItemList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.naturalSearchItem {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid var(--line);
+  padding: 11px 2px 3px;
+}
+
+.naturalSearchItem:hover strong {
+  color: var(--primary-strong);
+}
+
+.naturalSearchItem strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.naturalSearchItem span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.naturalSearchLibraryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.spin {
+  animation: naturalSearchSpin 900ms linear infinite;
+}
+
+@keyframes naturalSearchSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.libraryChatTrigger {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 9;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  border: 1px solid rgba(15, 90, 76, 0.22);
+  border-radius: 999px;
+  background: #12352f;
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(15, 52, 47, 0.25);
+  padding: 0 18px;
+}
+
+.libraryChatTrigger:hover {
+  background: #0f2b27;
+}
+
+.libraryChatPanel {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 9;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  width: min(430px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid rgba(103, 113, 131, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(16, 24, 40, 0.24);
+}
+
+.libraryChatHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(237, 247, 244, 0.92), rgba(255, 255, 255, 0.98)),
+    #fff;
+  padding: 14px;
+}
+
+.libraryChatTitle,
+.libraryChatActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.libraryChatTitle h2,
+.libraryChatTitle p {
+  margin: 0;
+}
+
+.libraryChatTitle h2 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.libraryChatTitle p {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryChatMark,
+.libraryChatAvatar,
+.libraryChatEmptyIcon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: #edf7f4;
+  color: var(--primary-strong);
+}
+
+.libraryChatMark {
+  width: 34px;
+  height: 34px;
+}
+
+.libraryChatThreads {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px;
+}
+
+.libraryChatThreads button {
+  flex: 0 0 auto;
+  max-width: 150px;
+  min-height: 30px;
+  overflow: hidden;
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  color: #475467;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryChatThreads button.active,
+.libraryChatThreads button:hover {
+  border-color: rgba(23, 107, 91, 0.28);
+  background: #edf7f4;
+  color: var(--primary-strong);
+}
+
+.libraryChatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(250, 251, 252, 0.9), rgba(255, 255, 255, 0.96)),
+    #fff;
+  padding: 16px 14px;
+}
+
+.libraryChatMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.libraryChatMessage.user {
+  justify-content: flex-end;
+}
+
+.libraryChatAvatar {
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+}
+
+.libraryChatBubble {
+  max-width: min(340px, 84%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.05);
+  padding: 10px 12px;
+}
+
+.libraryChatMessage.user .libraryChatBubble {
+  border-color: #12352f;
+  background: #12352f;
+  color: #fff;
+}
+
+.libraryChatMessage.failed .libraryChatBubble {
+  border-color: rgba(180, 35, 24, 0.24);
+  background: #fff6f5;
+}
+
+.libraryChatBubble p {
+  margin: 0;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.62;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.libraryChatTyping {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.libraryChatResults {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.libraryChatResultMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.libraryChatResultMeta strong {
+  color: var(--primary-strong);
+}
+
+.libraryChatChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.libraryChatChips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #c8e5dd;
+  border-radius: 999px;
+  background: #edf7f4;
+  color: var(--primary-strong);
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.libraryChatCards {
+  display: grid;
+  gap: 7px;
+}
+
+.libraryChatCard {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  padding: 9px;
+}
+
+.libraryChatCard:hover {
+  border-color: rgba(23, 107, 91, 0.3);
+  background: #f3faf8;
+}
+
+.libraryChatCard strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryChatCard span,
+.libraryChatNoResults {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.libraryChatLibraryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+}
+
+.libraryChatState,
+.libraryChatEmpty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 100%;
+  color: var(--muted);
+  text-align: center;
+}
+
+.libraryChatState {
+  grid-auto-flow: column;
+  gap: 8px;
+  min-height: 180px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.libraryChatEmpty {
+  gap: 9px;
+  padding: 18px 10px;
+}
+
+.libraryChatEmptyIcon {
+  width: 40px;
+  height: 40px;
+}
+
+.libraryChatEmpty strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.libraryChatEmpty p {
+  max-width: 290px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.libraryChatExamples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.libraryChatExamples button {
+  min-height: 30px;
+  border-color: var(--line);
+  background: #fff;
+  color: #475467;
+  font-size: 12px;
+}
+
+.libraryChatExamples button:hover {
+  border-color: rgba(23, 107, 91, 0.28);
+  background: #edf7f4;
+  color: var(--primary-strong);
+}
+
+.libraryChatStatus,
+.libraryChatError {
+  border-top: 1px solid var(--line);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.libraryChatStatus {
+  background: #fbfcfd;
+  color: var(--muted);
+}
+
+.libraryChatError {
+  background: #fff6f5;
+  color: var(--danger);
+}
+
+.libraryChatComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: end;
+  gap: 9px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+}
+
+.libraryChatComposer textarea {
+  width: 100%;
+  max-height: 110px;
+  min-height: 44px;
+  resize: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  padding: 10px 11px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.libraryChatComposer textarea:focus {
+  border-color: var(--primary);
+  outline: 2px solid rgba(23, 107, 91, 0.16);
+}
+
+.libraryChatSend {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0;
 }
 
 .pageSurface {
@@ -2133,6 +2797,33 @@ button {
     position: static;
     justify-content: space-between;
     padding: 12px 18px;
+  }
+
+  .naturalSearchTrigger,
+  .naturalSearchPanel,
+  .libraryChatTrigger,
+  .libraryChatPanel {
+    right: 16px;
+  }
+
+  .naturalSearchTrigger,
+  .libraryChatTrigger {
+    bottom: 16px;
+  }
+
+  .naturalSearchPanel,
+  .libraryChatPanel {
+    bottom: 16px;
+  }
+
+  .libraryChatPanel {
+    left: 16px;
+    width: auto;
+    height: min(660px, calc(100vh - 32px));
+  }
+
+  .libraryChatBubble {
+    max-width: 86%;
   }
 
   .mobileSidebarButton {

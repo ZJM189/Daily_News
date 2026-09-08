@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.application.content_library.chat import ContentLibraryChatService
 from app.application.content_library.service import ContentLibraryService
 from app.application.digest_publishing.service import DigestQueryService
 from app.application.identity.dtos import UserDTO
@@ -14,7 +15,10 @@ from app.application.llm_operations.service import LLMProviderService
 from app.application.personalization.service import PersonalizationService
 from app.application.source_management.service import SourceManagementService
 from app.infrastructure.config import Settings, get_settings
-from app.infrastructure.content_library.factory import create_content_library_service
+from app.infrastructure.content_library.factory import (
+    create_content_library_chat_service,
+    create_content_library_service,
+)
 from app.infrastructure.digest_publishing.factory import create_digest_query_service
 from app.infrastructure.identity.repositories import SqlAlchemyIdentityRepository
 from app.infrastructure.job_operations.repositories import SqlAlchemyJobOperationsRepository
@@ -88,6 +92,12 @@ async def get_content_library_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> ContentLibraryService:
     return create_content_library_service(session)
+
+
+async def get_content_library_chat_service(
+    session: Annotated[Session, Depends(get_db_session)],
+) -> ContentLibraryChatService:
+    return create_content_library_chat_service(session)
 
 
 async def get_personalization_service(

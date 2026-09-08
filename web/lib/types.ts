@@ -140,6 +140,74 @@ export type LibraryAnalytics = {
   score_buckets: LibraryAnalyticsScoreBucket[];
 };
 
+export type NaturalLanguageLibrarySearch = {
+  mode: "llm" | "fallback";
+  explanation: string;
+  interpreted_query: {
+    keyword: string | null;
+    search_terms: string[];
+    category: string | null;
+    source_type: string | null;
+    source_id: string | null;
+    status: string | null;
+    published_from: string | null;
+    published_to: string | null;
+    min_score: number | null;
+    has_summary: boolean | null;
+    sort: string;
+    page_size: number;
+  };
+  chips: Array<{ key: string; label: string }>;
+  data: LibraryItem[];
+  meta: PageMeta;
+  library_url: string;
+  llm: {
+    provider: string;
+    model: string;
+    confidence: number;
+  } | null;
+};
+
+export type LibraryChatThread = {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LibraryChatMessage = {
+  id: string;
+  thread_id: string;
+  user_id: string;
+  role: "user" | "assistant";
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type LibraryChatResultPayload = {
+  message_id: string;
+  items: LibraryItem[];
+  meta: PageMeta;
+  library_url: string;
+  mode: "llm" | "fallback";
+  chips: Array<{ key: string; label: string }>;
+  llm: {
+    provider: string;
+    model: string;
+    confidence: number;
+  } | null;
+};
+
+export type LibraryChatStreamEvent =
+  | { event: "status"; data: { message: string; message_id?: string } }
+  | { event: "delta"; data: { message_id: string; text: string } }
+  | { event: "results"; data: LibraryChatResultPayload }
+  | { event: "rejected"; data: { message: string; message_id: string; intent: string } }
+  | { event: "error"; data: { message: string; message_id?: string } }
+  | { event: "done"; data: { message_id: string } };
+
 export type UserPreference = {
   follow_keywords: string[];
   exclude_keywords: string[];

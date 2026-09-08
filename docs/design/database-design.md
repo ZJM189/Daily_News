@@ -9,6 +9,14 @@
 - 用户删除时级联清理其收藏和目录。收藏引用的条目不允许直接硬删除；取消收藏不删除条目，摘要和分数读取条目最新值。
 - 索引覆盖 `(user_id, created_at)` 和 `(user_id, folder_id)`；移动保留原始收藏时间。
 
+## 信息库聊天增量（迁移 202609080001）
+
+- `library_chat_threads`：`id`、`user_id`、`title VARCHAR(120)`、`created_at`、`updated_at`。每条记录是一名用户的一段信息库助手会话。
+- `library_chat_messages`：`id`、`thread_id`、`user_id`、`role`、`content`、`metadata JSONB`、`created_at`。`role` 仅允许 `user` 或 `assistant`。
+- `metadata` 保存助手响应模式、意图分类、筛选 chips、结果 ID、结果预览和跳转信息库 URL，不保存 LLM API key、cookie 或密码。
+- 用户删除时级联清理其聊天会话和消息；删除会话时级联清理该会话消息。
+- 索引覆盖 `(user_id, updated_at)`、`(thread_id, created_at)` 和 `(user_id, created_at)`，支撑最近会话列表和消息历史加载。
+
 版本：v0.1
 
 日期：2026-09-02
@@ -103,6 +111,8 @@ erDiagram
     users ||--|| user_preferences : has
     users ||--o{ job_runs : triggers
     users ||--o{ source_credentials : manages
+    users ||--o{ library_chat_threads : owns
+    users ||--o{ library_chat_messages : sends
 
     source_credentials ||--o{ sources : used_by
     sources ||--o{ raw_items : collects
@@ -121,6 +131,7 @@ erDiagram
     prompt_versions ||--o{ llm_call_logs : uses
     job_runs ||--o{ raw_items : created
     job_runs ||--o{ digests : generated
+    library_chat_threads ||--o{ library_chat_messages : contains
 ```
 
 ## 6. 表结构
@@ -455,6 +466,42 @@ digest 快照条目表。为了保证历史简报稳定，保留标题、摘要�
 - `idx_user_feedback_user_action`
 - `idx_user_feedback_item`
 - `idx_user_feedback_topic`
+
+### 6.12.1 `library_chat_threads`
+
+信息库助手会话表。
+
+| 字段 | 类型 | 约束 | 说明 |
+| --- | --- | --- | --- |
+| `id` | uuid | pk | 会话 ID |
+| `user_id` | uuid | fk users.id, not null | 用户 |
+| `title` | varchar(120) | not null | 会话标题，默认取首条用户消息摘要 |
+| `created_at` | timestamptz | not null default now() | 创建时间 |
+| `updated_at` | timestamptz | not null default now() | 最近消息或标题更新时间 |
+
+索引：
+
+- `idx_library_chat_threads_user_updated`
+
+### 6.12.2 `library_chat_messages`
+
+信息库助手消息表。
+
+| 字段 | 类型 | 约束 | 说明 |
+| --- | --- | --- | --- |
+| `id` | uuid | pk | 消息 ID |
+| `thread_id` | uuid | fk library_chat_threads.id, not null | 所属会话 |
+| `user_id` | uuid | fk users.id, not null | 用户冗余字段，用于权限过滤和索引 |
+| `role` | varchar(16) | not null | `user` 或 `assistant` |
+| `content` | text | not null | 消息正文 |
+| `metadata` | jsonb | not null default `{}` | 意图、模式、结果预览和跳转 URL |
+| `created_at` | timestamptz | not null default now() | 创建时间 |
+
+约束与索引：
+
+- `ck_library_chat_messages_role`
+- `idx_library_chat_messages_thread_created`
+- `idx_library_chat_messages_user_created`
 
 ### 6.13 `llm_providers`
 

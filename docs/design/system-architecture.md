@@ -24,7 +24,7 @@
 - 自动采集多来源 AI 信息。
 - 对原始信息进行标准化、去重、轻量 topic 聚合、评分和中文摘要。
 - 自动生成并发布每日 digest 到 Web 看板。
-- 支持普通用户查看今日简报、历史简报、信息库、详情和我的关注。
+- 支持普通用户查看今日简报、历史简报、信息库、详情、我的关注和信息库智能聊天助手。
 - 支持管理员管理用户、来源、任务和 LLM provider。
 - 通过统一 collector 和 LLM provider 抽象降低后续扩展成本。
 
@@ -69,7 +69,7 @@ flowchart LR
 | 层级 | 选型 | 说明 |
 | --- | --- | --- |
 | 前端 | Next.js + TypeScript + local UI primitives | Web 看板、路由、页面状态管理、统一后台组件 |
-| 后端 | FastAPI + Python + DDD 模块化单体 | API、认证、业务编排、管理后台接口 |
+| 后端 | FastAPI + Python + DDD 模块化单体 + DeepAgents | API、认证、业务编排、管理后台接口、信息库智能查询 |
 | ORM/迁移 | SQLAlchemy + Alembic | 数据模型、迁移版本管理 |
 | 数据库 | PostgreSQL | 结构化数据、JSONB、全文检索、索引能力 |
 | 缓存/任务状态 | Redis | 分布式锁、缓存、限流和后台任务状态 |
@@ -86,6 +86,7 @@ flowchart LR
 
 - 登录页、今日简报、历史简报、信息库、我的关注和管理员页面。
 - 通过后端 API 获取数据。
+- 提供全局悬浮信息库聊天助手，通过 POST SSE 消费流式状态、回答文本和结果卡片。
 - 根据当前用户角色展示导航。
 - 不保存 LLM key、source token 等敏感信息。
 - 不直接访问外部数据源。
@@ -96,6 +97,7 @@ flowchart LR
 
 - 认证、会话、角色权限。
 - 内容查询、详情查询、个性化视图计算。
+- 信息库聊天会话、消息历史、意图门控和 DeepAgents 查询编排。
 - 管理员 source、job、LLM provider、用户管理接口。
 - 输入校验、权限校验和错误响应统一处理。
 - 触发后台任务，但不在请求线程中执行长任务。
@@ -177,6 +179,7 @@ web/
 │   ├── components/
 │   │   ├── AppShell.tsx
 │   │   ├── DigestView.tsx
+│   │   ├── LibraryChatWidget.tsx
 │   │   ├── LibraryAnalyticsPanel.tsx
 │   │   ├── PaginationBar.tsx
 │   │   └── UiPrimitives.tsx
@@ -196,6 +199,7 @@ web/
 - 普通用户不渲染管理员导航。
 - 管理页面仍依赖后端权限校验，不能只靠前端隐藏。
 - 信息库搜索只请求站内内容查询 API。
+- 信息库聊天助手只调用 `/api/v1/library/chat/*`，不直接访问外部数据源或 LLM provider。
 
 ## 7. 数据处理流程
 
