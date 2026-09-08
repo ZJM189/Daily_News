@@ -234,3 +234,11 @@ Frontend:
 cd web
 npm run build
 ```
+
+## 📄 License
+
+Original code in this project is licensed under the MIT License. The macshot-derived screenshot module needs a separate license and provenance review. Do not assume the combined application is MIT-only. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ZJM189/Daily_News&type=Date)](https://www.star-history.com/#ZJM189/Daily_News&Date)

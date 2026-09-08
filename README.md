@@ -234,3 +234,11 @@ pytest -q
 cd web
 npm run build
 ```
+
+## 📄 许可证
+
+本项目原创代码采用 MIT License。源自 macshot 的截图模块仍需要单独进行许可证与来源审查，请勿将整个组合应用默认视为仅采用 MIT 协议。详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ZJM189/Daily_News&type=Date)](https://www.star-history.com/#ZJM189/Daily_News&Date)
