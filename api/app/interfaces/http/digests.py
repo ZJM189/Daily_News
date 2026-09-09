@@ -14,8 +14,7 @@ router = APIRouter(prefix="/digests", tags=["digests"])
 
 
 @router.get("/today")
-def get_today_digest(
-    actor: Annotated[UserDTO, Depends(get_current_user)],
+async def get_today_digest(
     service: Annotated[DigestQueryService, Depends(get_digest_query_service)],
     view: Annotated[str, Query(pattern=r"^(system|following)$")] = "system",
 ) -> dict[str, object]:
@@ -25,7 +24,7 @@ def get_today_digest(
 
 
 @router.get("/{digest_date}")
-def get_digest(
+async def get_digest(
     digest_date: date,
     actor: Annotated[UserDTO, Depends(get_current_user)],
     service: Annotated[DigestQueryService, Depends(get_digest_query_service)],

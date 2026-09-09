@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rss,
+  ShieldAlert,
   Users
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -47,20 +48,28 @@ const adminNav: NavItem[] = [
   { href: "/admin/users", label: "用户管理", description: "账号权限", icon: Users }
 ];
 
+const publicRoutes = new Set(["/", "/today", "/login"]);
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(pathname !== "/login");
+  const [loading, setLoading] = useState(!isPublicRoute(pathname));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const publicRoute = isPublicRoute(pathname);
+  const loginRoute = pathname === "/login";
+  const adminRoute = pathname.startsWith("/admin");
 
   useEffect(() => {
     let active = true;
+    const currentPublicRoute = isPublicRoute(pathname);
     if (pathname === "/login") {
+      setUser(null);
       setLoading(false);
       return;
     }
+    setLoading(!currentPublicRoute);
     getCurrentUser()
       .then((currentUser) => {
         if (active) {
@@ -68,7 +77,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        router.replace("/login");
+        if (!active) return;
+        setUser(null);
+        if (!currentPublicRoute) {
+          const nextPath =
+            typeof window === "undefined"
+              ? pathname
+              : `${window.location.pathname}${window.location.search}`;
+          router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
+        }
       })
       .finally(() => {
         if (active) {
@@ -86,14 +103,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleLogout() {
     await apiPost("/api/v1/auth/logout");
+    setUser(null);
     router.replace("/login");
   }
 
-  if (pathname === "/login") {
+  if (loginRoute) {
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading && !publicRoute) {
     return (
       <main className="appLoading">
         <div className="spinner" />
@@ -101,6 +119,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
     );
   }
+
+  if (!user && !publicRoute) {
+    return (
+      <main className="appLoading">
+        <div className="spinner" />
+        <span>正在跳转登录</span>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <PublicShell pathname={pathname}>{children}</PublicShell>;
+  }
+
+  const guardedChildren = adminRoute && user.role !== "admin" ? <AccessDenied /> : children;
 
   return (
     <div
@@ -172,7 +205,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <FavoritesProvider key={user?.id}>
-          {children}
+          {guardedChildren}
           <LibraryChatWidget />
         </FavoritesProvider>
       </div>
@@ -211,4 +244,53 @@ function SidebarGroup({ title, items, pathname }: { title: string; items: NavIte
 function userInitial(user: User | null) {
   const name = user?.display_name || user?.username || "U";
   return name.slice(0, 1).toUpperCase();
+}
+
+function isPublicRoute(pathname: string) {
+  return publicRoutes.has(pathname);
+}
+
+function PublicShell({ children, pathname }: { children: React.ReactNode; pathname: string }) {
+  const nextPath = pathname === "/" ? "/today" : pathname;
+  const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
+
+  return (
+    <div className="publicFrame">
+      <header className="publicTopbar">
+        <Link href="/" className="publicBrand" aria-label="Daily News 公开首页">
+          <span className="publicBrandOrb">DN</span>
+          <span>
+            <strong>Daily News</strong>
+            <small>AI Briefing</small>
+          </span>
+        </Link>
+        <nav className="publicNav" aria-label="公开导航">
+          <Link className={pathname === "/" || pathname === "/today" ? "active" : ""} href="/today">
+            今日简报
+          </Link>
+        </nav>
+        <Link className="publicLoginButton" href={loginHref}>
+          登录进入工作区
+        </Link>
+      </header>
+      {children}
+    </div>
+  );
+}
+
+function AccessDenied() {
+  return (
+    <main className="pageSurface pageScaffold">
+      <section className="surfaceCard accessDeniedPanel">
+        <div className="emptyIcon">
+          <ShieldAlert size={24} />
+        </div>
+        <h1>无权访问系统管理</h1>
+        <p className="mutedText">当前账号没有管理员权限，可以继续查看今日简报、历史简报和信息库内容。</p>
+        <Link className="linkButton compactLink" href="/today">
+          返回今日简报
+        </Link>
+      </section>
+    </main>
+  );
 }
