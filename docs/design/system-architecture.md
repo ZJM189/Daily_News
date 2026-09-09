@@ -86,7 +86,7 @@ flowchart LR
 
 - 登录页、今日简报、历史简报、信息库、我的关注和管理员页面。
 - 通过后端 API 获取数据。
-- 提供全局悬浮信息库聊天助手，通过 POST SSE 消费流式状态、回答文本和结果卡片。
+- 提供全局悬浮信息库聊天助手，前端基于 assistant-ui core primitives，通过 POST SSE 消费流式状态、回答文本和结果卡片。
 - 根据当前用户角色展示导航。
 - 不保存 LLM key、source token 等敏感信息。
 - 不直接访问外部数据源。
@@ -196,6 +196,7 @@ web/
 - `AppShell` 负责 shadcn/ui Sidebar 风格侧边栏、顶部栏、移动端抽屉和退出登录。
 - `UiPrimitives` 提供 PageScaffold、PageHeader、SurfaceCard、CardHeader、MetricCard 和 Notice。
 - 中间内容区通过本地 shadcn-style primitives 统一页面结构，避免每个页面重复散写布局。
+- `LibraryChatWidget` 使用 `@assistant-ui/react` core primitives 接入外部消息存储、composer、message parts、data result renderer 和复制操作；不直接使用当前不兼容的 `@assistant-ui/react-ui` 预制 React 组件。
 - 普通用户不渲染管理员导航。
 - 管理页面仍依赖后端权限校验，不能只靠前端隐藏。
 - 信息库搜索只请求站内内容查询 API。

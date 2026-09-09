@@ -24,7 +24,7 @@ The project is designed for single-server deployment with Docker Compose, runnin
 - Personalized following: soft weighting for followed keywords, hard filtering for excluded keywords, category and source-type filters, blocked sources, and saved searches.
 - Private favorites: save items from the library, item detail panel, and following feed; organize favorites with single-level folders, move items, search, paginate, and move entries back to root when deleting a folder.
 - Dynamic library analytics: collapsible analytics panel for collection trends, source distribution, category distribution, score distribution, and summary coverage.
-- Library chat assistant: a global floating chat widget for natural-language queries over stored AI content, with intent gating, a DeepAgents read-only database tool, SSE streaming, and per-user chat history.
+- Library chat assistant: a global floating chat widget built on assistant-ui core primitives for natural-language queries over stored AI content, with intent gating, a DeepAgents read-only database tool, SSE streaming, and per-user chat history.
 - Consistent web workspace: sidebar, page headers, cards, metrics, alerts, pagination, and tables use a unified admin-dashboard style.
 - Web pages: daily digest, history, library, following feed, favorites, job logs, user management, source management, LLM management, and scheduler management.
 - Public deployment: Caddy is the single public entry point; API and Web are served under the same origin.
@@ -33,7 +33,7 @@ The project is designed for single-server deployment with Docker Compose, runnin
 
 | Module | Technology |
 | --- | --- |
-| Frontend | Next.js App Router, React, TypeScript, shadcn-style local UI primitives, Apache ECharts, TanStack Table, lucide-react |
+| Frontend | Next.js App Router, React, TypeScript, assistant-ui core primitives, shadcn-style local UI primitives, Apache ECharts, TanStack Table, lucide-react |
 | Backend | FastAPI, Python 3.12, DeepAgents |
 | Architecture | DDD-style modular monolith |
 | Database | PostgreSQL |

@@ -58,7 +58,7 @@ test("library chat widget streams, rejects unrelated questions, and keeps histor
   await chat.getByRole("button", { name: "关闭信息库助手" }).click();
   await page.getByRole("button", { name: "打开信息库智能助手" }).click();
   await expect(
-    chat.locator(".libraryChatMessage.user").filter({ hasText: libraryQuery }).first()
+    chat.locator(".aui-user-message-root").filter({ hasText: libraryQuery }).first()
   ).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("library-chat.png") });
   expect(
