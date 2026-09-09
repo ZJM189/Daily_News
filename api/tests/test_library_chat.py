@@ -115,6 +115,49 @@ def test_chat_stream_searches_library_and_returns_results_event() -> None:
     assert repository.rolled_back is False
 
 
+def test_delete_thread_removes_only_the_actor_thread() -> None:
+    actor = _actor()
+    other_actor = _actor()
+    repository = _ChatRepository(actor.id)
+    service = ContentLibraryChatService(
+        repository=repository,
+        library_repository=_LibraryRepository(),
+        library_service=_LibraryService(),
+        intent_classifier=_IntentClassifier(
+            LibraryChatIntentDTO(True, "library_search", 0.9, "allowed", "RAG 论文")
+        ),
+    )
+    own_thread = service.create_thread(actor=actor)
+    other_thread = repository.create_thread(user_id=other_actor.id, title="其他用户会话")
+
+    service.delete_thread(actor=actor, thread_id=own_thread.id)
+
+    assert service.get_thread(actor=actor, thread_id=own_thread.id) is None
+    assert service.get_thread(actor=other_actor, thread_id=other_thread.id) is not None
+
+
+def test_delete_thread_rejects_unknown_or_other_actor_thread() -> None:
+    actor = _actor()
+    other_actor = _actor()
+    repository = _ChatRepository(actor.id)
+    service = ContentLibraryChatService(
+        repository=repository,
+        library_repository=_LibraryRepository(),
+        library_service=_LibraryService(),
+        intent_classifier=_IntentClassifier(
+            LibraryChatIntentDTO(True, "library_search", 0.9, "allowed", "RAG 论文")
+        ),
+    )
+    other_thread = repository.create_thread(user_id=other_actor.id, title="其他用户会话")
+
+    try:
+        service.delete_thread(actor=actor, thread_id=other_thread.id)
+    except ValueError as exc:
+        assert str(exc) == "chat thread not found"
+    else:
+        raise AssertionError("deleting another actor's thread should fail")
+
+
 def _events(chunks) -> list[dict[str, object]]:
     events = []
     for chunk in chunks:
@@ -196,6 +239,13 @@ class _ChatRepository:
 
     def list_threads(self, *, user_id: UUID, limit: int) -> list[LibraryChatThreadDTO]:
         return [thread for thread in self.threads if thread.user_id == user_id][:limit]
+
+    def delete_thread(self, *, user_id: UUID, thread_id: UUID) -> None:
+        self.threads = [
+            thread
+            for thread in self.threads
+            if not (thread.id == thread_id and thread.user_id == user_id)
+        ]
 
     def update_thread_title(self, *, user_id: UUID, thread_id: UUID, title: str) -> None:
         self.threads = [

@@ -37,6 +37,19 @@ async def create_library_chat_thread(
     return {"data": LibraryChatThreadResponse.model_validate(thread)}
 
 
+@router.delete("/threads/{thread_id}")
+async def delete_library_chat_thread(
+    thread_id: UUID,
+    actor: Annotated[UserDTO, Depends(get_current_user)],
+    service: Annotated[ContentLibraryChatService, Depends(get_content_library_chat_service)],
+) -> dict[str, object]:
+    try:
+        service.delete_thread(actor=actor, thread_id=thread_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return {"data": {"ok": True}}
+
+
 @router.get("/threads/{thread_id}/messages")
 async def list_library_chat_messages(
     thread_id: UUID,

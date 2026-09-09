@@ -60,6 +60,23 @@ test("library chat widget streams, rejects unrelated questions, and keeps histor
   await expect(
     chat.locator(".aui-user-message-root").filter({ hasText: libraryQuery }).first()
   ).toBeVisible();
+  await page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("删除后聊天记录无法恢复");
+    await dialog.accept();
+  });
+  const deleteResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/library/chat/threads/") &&
+      response.request().method() === "DELETE" &&
+      response.ok()
+  );
+  await chat
+    .locator(".libraryChatThreadItem")
+    .filter({ hasText: libraryQuery })
+    .first()
+    .getByRole("button", { name: /删除会话/ })
+    .click();
+  await deleteResponse;
   await page.screenshot({ path: testInfo.outputPath("library-chat.png") });
   expect(
     await page.evaluate(

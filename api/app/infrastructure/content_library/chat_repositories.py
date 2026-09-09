@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.application.content_library.chat import ContentLibraryChatRepository
@@ -35,6 +35,15 @@ class SqlAlchemyContentLibraryChatRepository(ContentLibraryChatRepository):
             .limit(limit)
         ).all()
         return [self._thread_to_dto(thread) for thread in threads]
+
+    def delete_thread(self, *, user_id: UUID, thread_id: UUID) -> None:
+        self._session.execute(
+            delete(LibraryChatThread).where(
+                LibraryChatThread.id == thread_id,
+                LibraryChatThread.user_id == user_id,
+            )
+        )
+        self._session.flush()
 
     def update_thread_title(self, *, user_id: UUID, thread_id: UUID, title: str) -> None:
         self._session.execute(

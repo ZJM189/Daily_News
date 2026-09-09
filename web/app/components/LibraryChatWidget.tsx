@@ -14,6 +14,7 @@ import {
   Plus,
   SendHorizontal,
   Sparkles,
+  Trash2,
   X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ import {
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import {
   createLibraryChatThread,
+  deleteLibraryChatThread,
   listLibraryChatMessages,
   listLibraryChatThreads,
   streamLibraryChatMessage
@@ -72,6 +74,7 @@ export function LibraryChatWidget() {
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [deletingThreadId, setDeletingThreadId] = useState<string | null>(null);
   const activeThreadIdRef = useRef<string | null>(null);
   const hydrateRequestRef = useRef(0);
   const messageLoadRequestRef = useRef(0);
@@ -249,6 +252,41 @@ export function LibraryChatWidget() {
     await loadMessages(threadId);
   }
 
+  async function deleteThread(thread: LibraryChatThread) {
+    if (streaming || deletingThreadId) return;
+    if (!window.confirm(`确定删除“${thread.title}”吗？删除后聊天记录无法恢复。`)) return;
+
+    setDeletingThreadId(thread.id);
+    setError(null);
+    hydrateRequestRef.current += 1;
+    messageLoadRequestRef.current += 1;
+    const remainingThreads = threads.filter((candidate) => candidate.id !== thread.id);
+
+    try {
+      await deleteLibraryChatThread(thread.id);
+      setThreads(remainingThreads);
+      if (thread.id !== activeThreadId) return;
+
+      const nextThread = remainingThreads[0];
+      if (nextThread) {
+        setActiveThreadId(nextThread.id);
+        setMessages([]);
+        await loadMessages(nextThread.id);
+        return;
+      }
+
+      const replacementThread = await createLibraryChatThread();
+      setThreads([replacementThread]);
+      setActiveThreadId(replacementThread.id);
+      setMessages([]);
+      setStatus(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除会话失败");
+    } finally {
+      setDeletingThreadId(null);
+    }
+  }
+
   async function ensureThread(): Promise<LibraryChatThread | null> {
     if (activeThreadId) {
       return threads.find((thread) => thread.id === activeThreadId) ?? {
@@ -394,20 +432,35 @@ export function LibraryChatWidget() {
             </div>
           </header>
 
-          {threads.length > 1 ? (
+          {threads.length ? (
             <div className="libraryChatThreads" aria-label="历史会话">
               <History size={14} aria-hidden="true" />
               {threads.slice(0, 5).map((thread) => (
-                <button
-                  className={thread.id === activeThreadId ? "active" : ""}
-                  type="button"
-                  key={thread.id}
-                  disabled={streaming}
-                  onClick={() => void selectThread(thread.id)}
-                  title={thread.title}
-                >
-                  {thread.title}
-                </button>
+                <div className="libraryChatThreadItem" key={thread.id}>
+                  <button
+                    className={`libraryChatThreadSelect ${thread.id === activeThreadId ? "active" : ""}`}
+                    type="button"
+                    disabled={streaming || deletingThreadId !== null}
+                    onClick={() => void selectThread(thread.id)}
+                    title={thread.title}
+                  >
+                    {thread.title}
+                  </button>
+                  <button
+                    className="libraryChatThreadDelete"
+                    type="button"
+                    aria-label={`删除会话 ${thread.title}`}
+                    title="删除会话"
+                    disabled={streaming || deletingThreadId !== null}
+                    onClick={() => void deleteThread(thread)}
+                  >
+                    {deletingThreadId === thread.id ? (
+                      <LoaderCircle className="spin" size={13} />
+                    ) : (
+                      <Trash2 size={13} />
+                    )}
+                  </button>
+                </div>
               ))}
             </div>
           ) : null}

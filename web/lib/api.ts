@@ -331,6 +331,10 @@ export function createLibraryChatThread(title?: string): Promise<LibraryChatThre
   return apiPost<LibraryChatThread>("/api/v1/library/chat/threads", { title });
 }
 
+export function deleteLibraryChatThread(threadId: string): Promise<{ ok: boolean }> {
+  return apiDelete<{ ok: boolean }>(`/api/v1/library/chat/threads/${threadId}`);
+}
+
 export function listLibraryChatMessages(threadId: string): Promise<LibraryChatMessage[]> {
   return apiGet<LibraryChatMessage[]>(`/api/v1/library/chat/threads/${threadId}/messages`);
 }

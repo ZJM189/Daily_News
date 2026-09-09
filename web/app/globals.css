@@ -821,26 +821,66 @@ select:focus {
   padding: 9px 12px;
 }
 
-.libraryChatThreads button {
+.libraryChatThreadItem {
+  display: inline-flex;
+  align-items: center;
   flex: 0 0 auto;
-  max-width: 156px;
+  max-width: 190px;
   min-height: 30px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   background: #fff;
+}
+
+.libraryChatThreadSelect {
+  flex: 0 0 auto;
+  max-width: 156px;
+  min-height: 30px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px 0 0 999px;
+  background: transparent;
   color: #475569;
-  padding: 0 10px;
+  padding: 0 8px 0 10px;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.libraryChatThreads button.active,
-.libraryChatThreads button:hover {
-  border-color: rgba(99, 102, 241, 0.36);
+.libraryChatThreadSelect.active,
+.libraryChatThreadSelect:hover {
   background: #eef2ff;
   color: #3730a3;
+}
+
+.libraryChatThreadItem:has(.libraryChatThreadSelect.active) {
+  border-color: rgba(99, 102, 241, 0.36);
+}
+
+.libraryChatThreadDelete {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 28px;
+  min-height: 28px;
+  border: 0;
+  border-left: 1px solid #e2e8f0;
+  border-radius: 0 999px 999px 0;
+  background: transparent;
+  color: #94a3b8;
+  padding: 0;
+}
+
+.libraryChatThreadDelete:hover {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.libraryChatThreadDelete:disabled,
+.libraryChatThreadSelect:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .libraryChatThreadSurface {

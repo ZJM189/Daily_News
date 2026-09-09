@@ -34,6 +34,9 @@ class ContentLibraryChatRepository(Protocol):
     def list_threads(self, *, user_id: UUID, limit: int) -> list[LibraryChatThreadDTO]:
         raise NotImplementedError
 
+    def delete_thread(self, *, user_id: UUID, thread_id: UUID) -> None:
+        raise NotImplementedError
+
     def update_thread_title(self, *, user_id: UUID, thread_id: UUID, title: str) -> None:
         raise NotImplementedError
 
@@ -92,6 +95,11 @@ class ContentLibraryChatService:
 
     def list_threads(self, *, actor: UserDTO, limit: int = 20) -> list[LibraryChatThreadDTO]:
         return self._repository.list_threads(user_id=actor.id, limit=min(max(limit, 1), 50))
+
+    def delete_thread(self, *, actor: UserDTO, thread_id: UUID) -> None:
+        if self.get_thread(actor=actor, thread_id=thread_id) is None:
+            raise ValueError("chat thread not found")
+        self._repository.delete_thread(user_id=actor.id, thread_id=thread_id)
 
     def list_messages(self, *, actor: UserDTO, thread_id: UUID) -> list[LibraryChatMessageDTO]:
         if self.get_thread(actor=actor, thread_id=thread_id) is None:
