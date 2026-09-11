@@ -2,7 +2,12 @@ from app.infrastructure.config import Settings
 
 
 def test_development_has_no_default_cors_origin() -> None:
-    settings = Settings(_env_file=None, app_env="development", app_domain="localhost")
+    settings = Settings(
+        _env_file=None,
+        app_env="development",
+        app_domain="localhost",
+        session_cookie_secure=None,
+    )
 
     assert settings.debug is True
     assert settings.cookie_secure is False
@@ -10,7 +15,12 @@ def test_development_has_no_default_cors_origin() -> None:
 
 
 def test_production_domain_is_used_as_default_cors_origin() -> None:
-    settings = Settings(_env_file=None, app_env="production", app_domain="news.example.com")
+    settings = Settings(
+        _env_file=None,
+        app_env="production",
+        app_domain="news.example.com",
+        session_cookie_secure=None,
+    )
 
     assert settings.debug is False
     assert settings.cookie_secure is True

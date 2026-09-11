@@ -1671,7 +1671,8 @@ h2 {
 }
 
 .statusBadge.running,
-.statusBadge.pending {
+.statusBadge.pending,
+.statusBadge.scanned {
   background: #fffaeb;
   color: var(--warning);
 }
@@ -2605,13 +2606,20 @@ legend {
 
 .adminSplit {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 300px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
+.adminStack {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
 .adminForm {
   display: grid;
+  min-width: 0;
   gap: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2621,16 +2629,35 @@ legend {
 
 .adminForm label {
   display: grid;
+  min-width: 0;
   gap: 7px;
   color: #344054;
   font-size: 14px;
   font-weight: 800;
 }
 
+.adminForm input:not([type="checkbox"]):not([type="radio"]),
+.adminForm select,
+.adminForm textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .adminForm .inlineCheck {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.inlineToolPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.inlineToolPanel button {
+  width: 100%;
 }
 
 .inlineCheck input {
@@ -2640,6 +2667,7 @@ legend {
 .formGridTwo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
   gap: 10px;
 }
 
@@ -3382,7 +3410,7 @@ button {
   max-width: 700px;
   margin-bottom: 18px;
   color: #f5f9fb;
-  font-size: clamp(30px, 4.5vw, 58px);
+  font-size: clamp(38px, 6vw, 76px);
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1.08;
@@ -3956,7 +3984,7 @@ button {
   }
 
   .publicHeroCopy h1 {
-    font-size: 36px;
+    font-size: 46px;
   }
 
   .publicSectionHeading {

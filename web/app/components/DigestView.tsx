@@ -28,7 +28,7 @@ const sourceTypeLabels: Record<string, string> = {
   github: "GitHub",
   arxiv: "arXiv",
   product_hunt: "Product Hunt",
-  hugging_face: "Hugging Face"
+  hugging_face: "Hugging Face",
 };
 
 type DigestViewProps = {
@@ -194,7 +194,7 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
             </Link>
           </div>
         </div>
-        <div className="publicSignalPanel" aria-label="今日简报统计">
+        <div className="publicSignalPanel" aria-label="今日 AI 简报统计">
           <div className="publicSignalHeader">
             <span>Briefing Signal</span>
             <strong>v{digest.version}</strong>

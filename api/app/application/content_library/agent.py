@@ -18,7 +18,14 @@ CATEGORY_CODES = {
     "industry_funding",
     "other",
 }
-SOURCE_TYPES = {"rss", "hacker_news", "github", "arxiv", "product_hunt", "hugging_face"}
+SOURCE_TYPES = {
+    "rss",
+    "hacker_news",
+    "github",
+    "arxiv",
+    "product_hunt",
+    "hugging_face",
+}
 ITEM_STATUSES = {"collected", "normalized", "deduped", "ranked", "summarized", "selected", "failed"}
 SORTS = {"latest", "score", "collected"}
 

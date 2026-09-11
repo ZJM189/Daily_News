@@ -41,7 +41,7 @@ export function TodayDigestPage() {
 
   return (
     <PageScaffold className={authenticated ? undefined : "publicBriefingPage"}>
-      {loading ? <Notice>正在加载今日简报</Notice> : null}
+      {loading ? <Notice>正在加载今日 AI 简报</Notice> : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {!loading && !error ? <DigestView digest={digest} mode={mode} /> : null}
     </PageScaffold>

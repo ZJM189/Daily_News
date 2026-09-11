@@ -19,7 +19,14 @@ ALLOWED_CATEGORIES = {
     "industry_funding",
     "other",
 }
-ALLOWED_SOURCE_TYPES = {"rss", "hacker_news", "github", "arxiv", "product_hunt", "hugging_face"}
+ALLOWED_SOURCE_TYPES = {
+    "rss",
+    "hacker_news",
+    "github",
+    "arxiv",
+    "product_hunt",
+    "hugging_face",
+}
 ALLOWED_FEEDBACK_ACTIONS = {"more_like", "less_like", "block_source"}
 
 

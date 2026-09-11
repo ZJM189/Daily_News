@@ -67,5 +67,5 @@ export const favoriteSourceLabels: Record<string, string> = {
   arxiv: "arXiv",
   hacker_news: "Hacker News",
   product_hunt: "Product Hunt",
-  hugging_face: "Hugging Face"
+  hugging_face: "Hugging Face",
 };

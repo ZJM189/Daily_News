@@ -55,7 +55,7 @@ const sourceTypeOptions = [
   { value: "arxiv", label: "arXiv" },
   { value: "hacker_news", label: "Hacker News" },
   { value: "product_hunt", label: "Product Hunt" },
-  { value: "hugging_face", label: "Hugging Face" }
+  { value: "hugging_face", label: "Hugging Face" },
 ];
 
 const sortOptions = [

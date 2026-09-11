@@ -33,7 +33,7 @@ type NavItem = {
 };
 
 const primaryNav: NavItem[] = [
-  { href: "/today", label: "今日简报", description: "当天精选", icon: Newspaper },
+  { href: "/today", label: "今日 AI 简报", description: "当天精选", icon: Newspaper },
   { href: "/history", label: "历史简报", description: "按天回溯", icon: History },
   { href: "/library", label: "信息库", description: "全量检索", icon: Database },
   { href: "/following", label: "我的关注", description: "个性化流", icon: Bell },
@@ -261,12 +261,12 @@ function PublicShell({ children, pathname }: { children: React.ReactNode; pathna
           <span className="publicBrandOrb">DN</span>
           <span>
             <strong>Daily News</strong>
-            <small>AI Briefing</small>
+            <small>AI BRIEFING</small>
           </span>
         </Link>
         <nav className="publicNav" aria-label="公开导航">
           <Link className={pathname === "/" || pathname === "/today" ? "active" : ""} href="/today">
-            今日简报
+            今日 AI 简报
           </Link>
         </nav>
         <Link className="publicLoginButton" href={loginHref}>
@@ -286,9 +286,9 @@ function AccessDenied() {
           <ShieldAlert size={24} />
         </div>
         <h1>无权访问系统管理</h1>
-        <p className="mutedText">当前账号没有管理员权限，可以继续查看今日简报、历史简报和信息库内容。</p>
+        <p className="mutedText">当前账号没有管理员权限，可以继续查看今日 AI 简报、历史简报和信息库内容。</p>
         <Link className="linkButton compactLink" href="/today">
-          返回今日简报
+          返回今日 AI 简报
         </Link>
       </section>
     </main>
