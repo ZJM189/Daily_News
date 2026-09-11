@@ -104,7 +104,9 @@ test("anonymous private routes redirect to login with next path", async ({ page 
   await expect(page.getByRole("heading", { name: "登录工作区" })).toBeVisible();
 });
 
-test("authenticated users keep the workspace shell on today page", async ({ page }) => {
+test("authenticated users keep the responsive workspace navigation on today page", async ({
+  page
+}, testInfo) => {
   await page.unroute("**/api/v1/auth/me");
   await page.route("**/api/v1/auth/me", async (route) => {
     await route.fulfill({
@@ -133,4 +135,40 @@ test("authenticated users keep the workspace shell on today page", async ({ page
   await expect(page.getByRole("button", { name: "打开信息库智能助手" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "今日 AI 情报简报" })).toBeVisible();
   await expect(page.getByRole("link", { name: "登录进入工作区" })).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+  expect(
+    await page.evaluate(() =>
+      document.fonts.check('16px "Noto Sans SC Variable"', "中文字体")
+    )
+  ).toBeTruthy();
+
+  const mobileNav = page.getByRole("navigation", { name: "主工作区快捷导航" });
+  if (testInfo.project.name === "mobile") {
+    await expect(mobileNav).toBeVisible();
+    await expect(mobileNav.getByRole("link", { name: "今日" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+    await expect(mobileNav.getByRole("link")).toHaveCount(5);
+
+    const assistantBox = await page
+      .getByRole("button", { name: "打开信息库智能助手" })
+      .boundingBox();
+    expect(assistantBox?.width).toBeLessThanOrEqual(50);
+    expect(assistantBox?.height).toBeLessThanOrEqual(50);
+
+    const mobileNavBox = await mobileNav.boundingBox();
+    expect(assistantBox && mobileNavBox && assistantBox.y + assistantBox.height < mobileNavBox.y).toBeTruthy();
+
+    const metricTops = await page.locator(".compactStats .metricCard").evaluateAll((cards) =>
+      cards.map((card) => Math.round(card.getBoundingClientRect().top))
+    );
+    expect(new Set(metricTops).size).toBe(1);
+  } else {
+    await expect(mobileNav).toBeHidden();
+    await page.getByRole("button", { name: "打开账号菜单" }).click();
+    await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menuitem", { name: "退出登录" })).toHaveCount(0);
+  }
 });

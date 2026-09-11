@@ -481,6 +481,7 @@ export function LibraryChatWidget() {
           className="libraryChatTrigger"
           type="button"
           aria-label="打开信息库智能助手"
+          title="信息库助手"
           onClick={() => setOpen(true)}
         >
           <MessageCircle size={18} aria-hidden="true" />

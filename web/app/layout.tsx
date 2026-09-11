@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/noto-sans-sc";
 import { AppShell } from "./components/AppShell";
 import "./globals.css";
 import "./favorites.css";

@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   Bookmark,
   BrainCircuit,
   CalendarClock,
+  ChevronUp,
   Database,
   History,
   ListChecks,
+  LogOut,
   Menu,
   Newspaper,
   PanelLeftClose,
@@ -57,6 +59,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(!isPublicRoute(pathname));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const publicRoute = isPublicRoute(pathname);
   const loginRoute = pathname === "/login";
   const adminRoute = pathname.startsWith("/admin");
@@ -99,9 +103,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMobileSidebarOpen(false);
+    setAccountMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountMenuOpen]);
+
   async function handleLogout() {
+    setAccountMenuOpen(false);
     await apiPost("/api/v1/auth/logout");
     setUser(null);
     router.replace("/login");
@@ -134,10 +161,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const guardedChildren = adminRoute && user.role !== "admin" ? <AccessDenied /> : children;
+  const activeNavItem = findActiveNavItem(pathname);
 
   return (
     <div
-      className={`appFrame ${sidebarCollapsed ? "sidebarCollapsed" : ""} ${
+      className={`appFrame ${adminRoute ? "adminFrame" : "workspaceFrame"} ${
+        sidebarCollapsed ? "sidebarCollapsed" : ""
+      } ${
         mobileSidebarOpen ? "mobileSidebarOpen" : ""
       }`}
     >
@@ -174,15 +204,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : null}
         </nav>
 
-        <footer className="sidebarFooter">
-          <span className="sidebarAvatar" aria-hidden="true">
-            {userInitial(user)}
-          </span>
-          <span className="sidebarUserText">
-            <strong>{user?.display_name || user?.username}</strong>
-            <small>{user?.role === "admin" ? "管理员" : "普通用户"}</small>
-          </span>
-        </footer>
+        <div className="sidebarAccount" ref={accountMenuRef}>
+          {accountMenuOpen ? (
+            <div className="sidebarAccountMenu" role="menu">
+              <div className="sidebarAccountDetails">
+                <strong>{user?.display_name || user?.username}</strong>
+                <span>{user?.email || user?.username}</span>
+              </div>
+              <button
+                className="sidebarAccountAction"
+                type="button"
+                role="menuitem"
+                onClick={() => void handleLogout()}
+              >
+                <LogOut size={16} />
+                <span>退出登录</span>
+              </button>
+            </div>
+          ) : null}
+          <button
+            className="sidebarFooter"
+            type="button"
+            aria-label="打开账号菜单"
+            aria-haspopup="menu"
+            aria-expanded={accountMenuOpen}
+            title="打开账号菜单"
+            onClick={() => setAccountMenuOpen((open) => !open)}
+          >
+            <span className="sidebarAvatar" aria-hidden="true">
+              {userInitial(user)}
+            </span>
+            <span className="sidebarUserText">
+              <strong>{user?.display_name || user?.username}</strong>
+              <small>{user?.role === "admin" ? "管理员" : "普通用户"}</small>
+            </span>
+            <ChevronUp className="sidebarAccountChevron" size={16} aria-hidden="true" />
+          </button>
+        </div>
       </aside>
       <div className="contentColumn">
         <header className="topbar">
@@ -194,22 +252,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={17} />
             <span>菜单</span>
           </button>
-          <div className="topbarUserActions">
-            <div>
-              <strong>{user?.display_name || user?.username}</strong>
-              <span>{user?.role === "admin" ? "管理员" : "普通用户"}</span>
-            </div>
-            <button className="ghostButton" type="button" onClick={() => void handleLogout()}>
-              退出
-            </button>
+          <div className="topbarContext">
+            <strong>{activeNavItem.label}</strong>
+            <span>{activeNavItem.description}</span>
           </div>
         </header>
         <FavoritesProvider key={user?.id}>
           {guardedChildren}
-          <LibraryChatWidget />
+          {adminRoute ? null : <LibraryChatWidget />}
         </FavoritesProvider>
+        {adminRoute ? null : <MobileBottomNav pathname={pathname} />}
       </div>
     </div>
+  );
+}
+
+function MobileBottomNav({ pathname }: { pathname: string }) {
+  return (
+    <nav className="mobileBottomNav" aria-label="主工作区快捷导航">
+      {primaryNav.map((item) => {
+        const Icon = item.icon;
+        const active = isNavItemActive(pathname, item.href);
+        return (
+          <Link
+            className={`mobileBottomNavLink ${active ? "active" : ""}`}
+            href={item.href}
+            key={item.href}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon size={20} strokeWidth={2.1} aria-hidden="true" />
+            <span>{mobileNavLabel(item.label)}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -219,7 +295,7 @@ function SidebarGroup({ title, items, pathname }: { title: string; items: NavIte
       <p className="navGroupTitle">{title}</p>
       {items.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = isNavItemActive(pathname, item.href);
         return (
           <Link
             key={item.href}
@@ -239,6 +315,22 @@ function SidebarGroup({ title, items, pathname }: { title: string; items: NavIte
       })}
     </div>
   );
+}
+
+function findActiveNavItem(pathname: string) {
+  return (
+    [...primaryNav, ...adminNav].find((item) => isNavItemActive(pathname, item.href)) ??
+    primaryNav[0]
+  );
+}
+
+function isNavItemActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function mobileNavLabel(label: string) {
+  if (label === "今日 AI 简报") return "今日";
+  return label.replace(/^我的/, "").replace(/简报$/, "");
 }
 
 function userInitial(user: User | null) {

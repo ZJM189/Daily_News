@@ -13,6 +13,7 @@
     "@assistant-ui/react": "^0.15.18",
     "@assistant-ui/react-markdown": "^0.14.14",
     "@assistant-ui/react-ui": "^0.2.1",
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
     "@tanstack/react-table": "^9.2.4",
     "echarts": "^6.1.0",
     "lucide-react": "^1.41.0",

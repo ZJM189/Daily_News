@@ -1,33 +1,79 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  CardHeader,
-  Notice,
-  PageHeader,
-  PageScaffold
-} from "../../components/UiPrimitives";
+  ChevronDown,
+  KeyRound,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  UserCheck,
+  UserRound,
+  Users
+} from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminMetric,
+  AdminStatusBadge
+} from "../../components/AdminPrimitives";
+import { Modal } from "../../components/Modal";
+import { Notice, PageHeader, PageScaffold } from "../../components/UiPrimitives";
 import { createUser, listUsers, resetUserPassword, updateUser } from "../../../lib/api";
 import type { User } from "../../../lib/types";
+
+type UserForm = {
+  username: string;
+  email: string;
+  display_name: string;
+  password: string;
+  role: "user" | "admin";
+  status: "active" | "disabled";
+};
+
+const emptyForm: UserForm = {
+  username: "",
+  email: "",
+  display_name: "",
+  password: "",
+  role: "user",
+  status: "active"
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [resetTarget, setResetTarget] = useState<User | null>(null);
-  const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    display_name: "",
-    password: "",
-    role: "user" as "user" | "admin",
-    status: "active" as "active" | "disabled"
-  });
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [form, setForm] = useState<UserForm>(emptyForm);
+
+  const filteredUsers = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return users.filter((user) => {
+      const matchesKeyword =
+        !keyword ||
+        user.username.toLowerCase().includes(keyword) ||
+        (user.display_name || "").toLowerCase().includes(keyword) ||
+        (user.email || "").toLowerCase().includes(keyword);
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+      return matchesKeyword && matchesRole && matchesStatus;
+    });
+  }, [roleFilter, search, statusFilter, users]);
+
+  const activeCount = users.filter((user) => user.status === "active").length;
+  const adminCount = users.filter((user) => user.role === "admin").length;
+  const signedInCount = users.filter((user) => user.last_login_at).length;
 
   async function refresh() {
     setLoading(true);
@@ -35,9 +81,6 @@ export default function AdminUsersPage() {
     try {
       const nextUsers = await listUsers();
       setUsers(nextUsers);
-      if (editingUser) {
-        setEditingUser(nextUsers.find((user) => user.id === editingUser.id) ?? null);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "用户列表加载失败");
     } finally {
@@ -45,73 +88,62 @@ export default function AdminUsersPage() {
     }
   }
 
+  function openCreate() {
+    setEditingUser(null);
+    setForm(emptyForm);
+    setEditorOpen(true);
+  }
+
   function startEdit(user: User) {
     setEditingUser(user);
-    setForm({
-      username: "",
-      email: "",
-      display_name: user.display_name || "",
-      password: "",
-      role: user.role as "user" | "admin",
-      status: user.status as "active" | "disabled"
-    });
+    setForm(formFromUser(user));
+    setEditorOpen(true);
   }
 
-  function resetEditor() {
+  function closeEditor() {
+    setEditorOpen(false);
     setEditingUser(null);
-    setForm({
-      username: "",
-      email: "",
-      display_name: "",
-      password: "",
-      role: "user",
-      status: "active"
-    });
+    setForm(emptyForm);
   }
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+  function openPasswordReset(user: User) {
+    setResetTarget(user);
+    setNewPassword("");
+  }
+
+  function closePasswordReset() {
+    setResetTarget(null);
+    setNewPassword("");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setMessage(null);
     setError(null);
     try {
-      await createUser({
-        username: form.username,
-        email: form.email || null,
-        display_name: form.display_name || null,
-        password: form.password,
-        role: form.role,
-        status: form.status
-      });
-      setMessage("用户已创建");
-      setForm({ ...form, username: "", email: "", display_name: "", password: "" });
+      if (editingUser) {
+        await updateUser(editingUser.id, {
+          display_name: form.display_name || null,
+          role: form.role,
+          status: form.status
+        });
+        setMessage("用户已更新");
+      } else {
+        await createUser({
+          username: form.username,
+          email: form.email || null,
+          display_name: form.display_name || null,
+          password: form.password,
+          role: form.role,
+          status: form.status
+        });
+        setMessage("用户已创建");
+      }
+      closeEditor();
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建用户失败");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleUpdate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!editingUser) {
-      return;
-    }
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      await updateUser(editingUser.id, {
-        display_name: form.display_name || null,
-        role: form.role,
-        status: form.status
-      });
-      setMessage("用户已更新");
-      resetEditor();
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "更新用户失败");
+      setError(err instanceof Error ? err.message : editingUser ? "更新用户失败" : "创建用户失败");
     } finally {
       setSaving(false);
     }
@@ -121,10 +153,9 @@ export default function AdminUsersPage() {
     setMessage(null);
     setError(null);
     try {
-      await updateUser(user.id, {
-        status: user.status === "active" ? "disabled" : "active"
-      });
-      setMessage(user.status === "active" ? "用户已禁用" : "用户已启用");
+      const nextStatus = user.status === "active" ? "disabled" : "active";
+      await updateUser(user.id, { status: nextStatus });
+      setMessage(nextStatus === "active" ? "用户已启用" : "用户已禁用");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新用户失败");
@@ -133,17 +164,14 @@ export default function AdminUsersPage() {
 
   async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!resetTarget) {
-      return;
-    }
+    if (!resetTarget) return;
     setResetting(true);
     setMessage(null);
     setError(null);
     try {
       await resetUserPassword(resetTarget.id, newPassword);
       setMessage(`已重置 ${resetTarget.username} 的密码`);
-      setResetTarget(null);
-      setNewPassword("");
+      closePasswordReset();
     } catch (err) {
       setError(err instanceof Error ? err.message : "重置密码失败");
     } finally {
@@ -156,243 +184,100 @@ export default function AdminUsersPage() {
   }, []);
 
   return (
-    <PageScaffold>
+    <PageScaffold className="managementPage">
       <PageHeader
-        eyebrow="管理员"
+        eyebrow="管理员 / 账号权限"
         title="用户管理"
-        description="系统不开放注册，所有用户由管理员创建、启停和分配角色。"
+        description="管理系统账号、访问状态和管理员权限。"
         actions={
-        <button className="ghostButton" type="button" onClick={() => void refresh()}>
-          刷新
-        </button>
+          <div className="managementPageActions">
+            <button className="ghostButton" type="button" onClick={() => void refresh()} title="刷新列表"><RefreshCw size={16} aria-hidden="true" />刷新</button>
+            <button type="button" onClick={openCreate}><Plus size={17} aria-hidden="true" />新增用户</button>
+          </div>
         }
       />
 
       {message ? <Notice tone="success">{message}</Notice> : null}
       {error ? <Notice tone="danger" compact>{error}</Notice> : null}
 
-      <section className="adminSplit">
-        <div className="adminStack">
-          <form className="adminForm" onSubmit={handleCreate}>
-            <CardHeader
-              title="创建用户"
-              description="创建后用户即可用账号密码登录系统。"
-            />
-            <label>
-              <span>用户名</span>
-              <input
-                value={form.username}
-                onChange={(event) => setForm({ ...form, username: event.target.value })}
-                placeholder="例如：news_editor"
-                required
-              />
-            </label>
-            <label>
-              <span>邮箱</span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
-                placeholder="可选"
-              />
-            </label>
-            <label>
-              <span>显示名</span>
-              <input
-                value={form.display_name}
-                onChange={(event) => setForm({ ...form, display_name: event.target.value })}
-                placeholder="可选"
-              />
-            </label>
-            <label>
-              <span>初始密码</span>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="至少 10 位"
-                required
-              />
-            </label>
-            <div className="formGridTwo">
-              <label>
-                <span>角色</span>
-                <select
-                  value={form.role}
-                  onChange={(event) =>
-                    setForm({ ...form, role: event.target.value as "user" | "admin" })
-                  }
-                >
-                  <option value="user">普通用户</option>
-                  <option value="admin">管理员</option>
-                </select>
-              </label>
-              <label>
-                <span>状态</span>
-                <select
-                  value={form.status}
-                  onChange={(event) =>
-                    setForm({ ...form, status: event.target.value as "active" | "disabled" })
-                  }
-                >
-                  <option value="active">启用</option>
-                  <option value="disabled">禁用</option>
-                </select>
-              </label>
-            </div>
-            <button type="submit" disabled={saving}>
-              {saving ? "创建中" : "创建用户"}
-            </button>
-          </form>
+      <section className="managementMetricStrip" aria-label="用户摘要">
+        <AdminMetric icon={<Users size={18} />} label="用户总数" value={users.length} detail="系统内全部账号" />
+        <AdminMetric icon={<UserCheck size={18} />} label="启用账号" value={activeCount} detail={`${users.length - activeCount} 个已停用`} tone="success" />
+        <AdminMetric icon={<ShieldCheck size={18} />} label="管理员" value={adminCount} detail="拥有系统管理权限" />
+        <AdminMetric icon={<KeyRound size={18} />} label="已有登录" value={signedInCount} detail="至少成功登录一次" />
+      </section>
 
-          {editingUser ? (
-            <form className="adminForm" onSubmit={handleUpdate}>
-              <CardHeader
-                title="编辑用户"
-                description={editingUser.display_name || editingUser.username}
-              />
-              <label>
-                <span>显示名</span>
-                <input
-                  value={form.display_name}
-                  onChange={(event) => setForm({ ...form, display_name: event.target.value })}
-                  placeholder="可选"
-                />
-              </label>
-              <div className="formGridTwo">
-                <label>
-                  <span>角色</span>
-                  <select
-                    value={form.role}
-                    onChange={(event) =>
-                      setForm({ ...form, role: event.target.value as "user" | "admin" })
-                    }
-                  >
-                    <option value="user">普通用户</option>
-                    <option value="admin">管理员</option>
-                  </select>
-                </label>
-                <label>
-                  <span>状态</span>
-                  <select
-                    value={form.status}
-                    onChange={(event) =>
-                      setForm({ ...form, status: event.target.value as "active" | "disabled" })
-                    }
-                  >
-                    <option value="active">启用</option>
-                    <option value="disabled">禁用</option>
-                  </select>
-                </label>
-              </div>
-              <button type="submit" disabled={saving}>
-                {saving ? "保存中" : "保存用户"}
-              </button>
-              <button className="ghostButton" type="button" onClick={resetEditor}>
-                取消编辑
-              </button>
-            </form>
-          ) : null}
-
-          {resetTarget ? (
-            <form className="adminForm" onSubmit={handleResetPassword}>
-              <CardHeader
-                title="重置密码"
-                description={resetTarget.display_name || resetTarget.username}
-              />
-              <label>
-                <span>新密码</span>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  placeholder="至少 10 位"
-                  required
-                />
-              </label>
-              <div className="inlineForm">
-                <button type="submit" disabled={resetting}>
-                  {resetting ? "重置中" : "确认重置"}
-                </button>
-                <button
-                  className="ghostButton"
-                  type="button"
-                  onClick={() => {
-                    setResetTarget(null);
-                    setNewPassword("");
-                  }}
-                >
-                  取消
-                </button>
-              </div>
-            </form>
-          ) : null}
+      <section className="managementWorkspace">
+        <div className="managementToolbar">
+          <div className="managementToolbarTitle">
+            <div><h2>用户列表</h2><p>查看账号身份、角色、状态和最近登录时间。</p></div>
+            <span className="managementResultCount">{filteredUsers.length} / {users.length}</span>
+          </div>
+          <div className="managementFilters">
+            <label className="managementSearchField"><Search size={16} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索用户名、显示名或邮箱" /></label>
+            <label className="managementFilterSelect"><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="筛选用户角色"><option value="all">全部角色</option><option value="admin">管理员</option><option value="user">普通用户</option></select><ChevronDown size={15} aria-hidden="true" /></label>
+            <label className="managementFilterSelect"><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="筛选用户状态"><option value="all">全部状态</option><option value="active">启用</option><option value="disabled">停用</option></select><ChevronDown size={15} aria-hidden="true" /></label>
+          </div>
         </div>
 
-        <section className="tableWrap tableCard">
-          <div className="tableCardHeader">
-            <h2>用户列表</h2>
-            <p className="mutedText">管理账号状态、角色和密码重置。</p>
-          </div>
-          {loading ? (
-            <div className="emptyState">正在加载用户</div>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>用户</th>
-                  <th>角色</th>
-                  <th>状态</th>
-                  <th>最近登录</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
+        {loading ? (
+          <AdminEmptyState icon={<RefreshCw className="spin" size={20} />} title="正在加载用户" />
+        ) : filteredUsers.length ? (
+          <div className="managementTableWrap">
+            <table className="managementTable userManagementTable">
+              <thead><tr><th>用户</th><th>角色</th><th>状态</th><th>最近登录</th><th>操作</th></tr></thead>
               <tbody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id}>
-                    <td>
-                      <strong>{user.display_name || user.username}</strong>
-                      <br />
-                      <span className="mutedText">{user.email || user.username}</span>
-                    </td>
-                    <td>{user.role === "admin" ? "管理员" : "普通用户"}</td>
-                    <td>
-                      <span className={`statusBadge ${user.status === "active" ? "success" : "failed"}`}>
-                        {user.status === "active" ? "启用" : "禁用"}
-                      </span>
-                    </td>
-                    <td>{user.last_login_at ? formatDateTime(user.last_login_at) : "从未登录"}</td>
-                    <td>
-                      <div className="itemActions">
-                        <button className="ghostButton" type="button" onClick={() => startEdit(user)}>
-                          编辑
-                        </button>
-                        <button className="ghostButton" type="button" onClick={() => void toggleStatus(user)}>
-                          {user.status === "active" ? "禁用" : "启用"}
-                        </button>
-                        <button
-                          className="ghostButton"
-                          type="button"
-                          onClick={() => setResetTarget(user)}
-                        >
-                          重置密码
-                        </button>
-                      </div>
-                    </td>
+                    <td><div className="managementNameCell"><span className="managementIdentityMark managementAvatar">{userInitial(user)}</span><div><strong>{user.display_name || user.username}</strong><small>{user.email || `@${user.username}`}</small></div></div></td>
+                    <td><span className="managementSecondaryText">{user.role === "admin" ? "管理员" : "普通用户"}</span></td>
+                    <td><AdminStatusBadge tone={user.status === "active" ? "success" : "neutral"}>{user.status === "active" ? "启用" : "停用"}</AdminStatusBadge></td>
+                    <td><span className="managementSecondaryText">{user.last_login_at ? formatDateTime(user.last_login_at) : "从未登录"}</span></td>
+                    <td><div className="managementRowActions"><button className="iconAction" type="button" title="编辑用户" aria-label={`编辑 ${user.username}`} onClick={() => startEdit(user)}><Pencil size={15} /></button><button className="iconAction" type="button" title="重置密码" aria-label={`重置 ${user.username} 的密码`} onClick={() => openPasswordReset(user)}><KeyRound size={15} /></button><button className="textAction" type="button" onClick={() => void toggleStatus(user)}>{user.status === "active" ? "停用" : "启用"}</button></div></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </section>
+          </div>
+        ) : (
+          <AdminEmptyState icon={<UserRound size={22} />} title="没有匹配的用户" description="调整筛选条件，或新增一个账号。" />
+        )}
       </section>
+
+      {editorOpen ? (
+        <Modal title={editingUser ? "编辑用户" : "新增用户"} onClose={closeEditor} busy={saving} drawer>
+          <form className="managementEditorForm" onSubmit={handleSubmit}>
+            <p className="modalIntro">{editingUser ? `更新「${editingUser.username}」的账号信息。` : "创建一个可登录 Daily News 的系统账号。"}</p>
+            {!editingUser ? <><label><span>用户名</span><input value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="例如：news_editor" required /></label><label><span>邮箱 <small>可选</small></span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="name@example.com" /></label></> : null}
+            <label><span>显示名 <small>可选</small></span><input value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} placeholder="用于界面展示" /></label>
+            {!editingUser ? <label><span>初始密码</span><input type="password" minLength={10} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="至少 10 位" required /></label> : null}
+            <div className="formGridTwo"><label><span>角色</span><select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserForm["role"] })}><option value="user">普通用户</option><option value="admin">管理员</option></select></label><label><span>状态</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as UserForm["status"] })}><option value="active">启用</option><option value="disabled">停用</option></select></label></div>
+            <div className="modalActions"><button className="ghostButton" type="button" onClick={closeEditor}>取消</button><button type="submit" disabled={saving}>{saving ? "保存中" : editingUser ? "保存修改" : "创建用户"}</button></div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {resetTarget ? (
+        <Modal title="重置密码" onClose={closePasswordReset} busy={resetting}>
+          <form className="managementEditorForm managementDialogForm" onSubmit={handleResetPassword}>
+            <p className="modalIntro">为「{resetTarget.display_name || resetTarget.username}」设置新密码。</p>
+            <label><span>新密码</span><input type="password" minLength={10} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="至少 10 位" required autoFocus /></label>
+            <div className="modalActions"><button className="ghostButton" type="button" onClick={closePasswordReset}>取消</button><button type="submit" disabled={resetting}>{resetting ? "重置中" : "确认重置"}</button></div>
+          </form>
+        </Modal>
+      ) : null}
     </PageScaffold>
   );
 }
 
+function formFromUser(user: User): UserForm {
+  return { username: user.username, email: user.email || "", display_name: user.display_name || "", password: "", role: user.role, status: user.status };
+}
+
+function userInitial(user: User) {
+  return (user.display_name || user.username).trim().slice(0, 1).toUpperCase();
+}
+
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("zh-CN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
