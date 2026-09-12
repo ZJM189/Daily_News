@@ -146,12 +146,13 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
   const topicCount = digest.stats.topic_count ?? digest.items.length;
   const itemCount = digest.stats.item_count ?? digest.items.length;
   const sourceCount = digest.stats.source_count ?? 0;
+  const title = publicDigestTitle(digest.title, digest.digest_date);
 
   return (
     <div className="publicDigestStack">
       <section className="publicDigestMasthead" aria-labelledby="public-digest-title">
         <p className="publicIssueDate">{formatDigestDate(digest.digest_date)}</p>
-        <h1 id="public-digest-title">{digest.title}</h1>
+        <h1 id="public-digest-title">{title}</h1>
         <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
         <div className="publicDigestFacts" aria-label="本期简报概况">
           <span><strong>{topicCount}</strong> 个专题</span>
@@ -276,15 +277,33 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function publicDigestTitle(title: string, digestDate: string) {
+  const escapedDate = digestDate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const compactDate = digestDate.replaceAll("-", "");
+  const date = new Date(`${digestDate}T00:00:00+08:00`);
+  const zhDate = Number.isNaN(date.getTime())
+    ? null
+    : `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  const patterns = [
+    new RegExp(`^${escapedDate}\\s*[-—–·|:：]?\\s*`),
+    new RegExp(`^${compactDate}\\s*[-—–·|:：]?\\s*`),
+    ...(zhDate ? [new RegExp(`^${zhDate}\\s*(?:周.|星期.)?\\s*[-—–·|:：]?\\s*`)] : [])
+  ];
+  const cleaned = patterns.reduce((value, pattern) => value.replace(pattern, ""), title).trim();
+  return cleaned || title;
+}
+
 function formatDigestDate(value: string) {
   const date = new Date(`${value}T00:00:00+08:00`);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
+  const monthDay = new Intl.DateTimeFormat("zh-CN", {
     month: "long",
-    day: "numeric",
+    day: "numeric"
+  }).format(date);
+  const weekday = new Intl.DateTimeFormat("zh-CN", {
     weekday: "short"
   }).format(date);
+  return `${monthDay} · ${weekday}`;
 }
 
 function formatTimestamp(value: string | null) {
