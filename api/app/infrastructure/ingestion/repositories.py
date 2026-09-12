@@ -34,6 +34,7 @@ from app.infrastructure.models import (
     LLMProvider,
     RawItem,
     Source,
+    SourceCredential,
     SourceStatus,
     SourceType,
     Topic,
@@ -573,9 +574,20 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
             status=str(source.status.value if hasattr(source.status, "value") else source.status),
             url=source.url,
             query_config=source.query_config,
+            credential_secret=self._credential_secret(source),
             credential_env_key=source.credential_env_key,
             weight=source.weight,
             language=source.language,
+        )
+
+    def _credential_secret(self, source: Source) -> str | None:
+        if source.credential_id is None:
+            return None
+        credential = self._session.get(SourceCredential, source.credential_id)
+        if credential is None or credential.status.value != "active":
+            return None
+        return SecretCipher(get_settings().encryption_key).decrypt(
+            credential.encrypted_secret
         )
 
     def _raw_item_to_dto(self, raw_item: RawItem) -> RawItemForNormalizationDTO:

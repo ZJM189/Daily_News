@@ -346,6 +346,8 @@ def _int_config(config: dict[str, Any], key: str, *, default: int, maximum: int)
 
 
 def _env_token(source: CollectableSourceDTO) -> str | None:
+    if source.credential_secret:
+        return source.credential_secret
     env_key = (
         source.credential_env_key
         or source.query_config.get("token_env")

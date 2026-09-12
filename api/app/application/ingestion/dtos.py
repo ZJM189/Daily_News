@@ -13,6 +13,7 @@ class CollectableSourceDTO:
     status: str
     url: str | None
     query_config: dict[str, Any]
+    credential_secret: str | None
     credential_env_key: str | None
     weight: int
     language: str | None

@@ -29,6 +29,20 @@ Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动
 - Web 工作台：今日简报、历史简报、信息库、我的关注、任务日志、用户管理、来源管理、LLM 管理、调度管理。
 - 外公网部署：Caddy 作为统一入口，对外只暴露 HTTP/HTTPS，API 和 Web 使用同源路径。
 
+## 界面预览
+
+### 主页
+
+<p align="center">
+  <img src="docs/主页.png" alt="Daily News 主页" width="100%">
+</p>
+
+### 后台管理页面
+
+<p align="center">
+  <img src="docs/后台管理页面.png" alt="Daily News 后台管理页面" width="100%">
+</p>
+
 ## 技术栈
 
 | 模块 | 技术 |

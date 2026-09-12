@@ -1,6 +1,8 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 from urllib.parse import urlencode
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from app.application.content_library.agent import (
     LibraryDatabaseSearchError,
@@ -20,6 +22,7 @@ from app.application.content_library.dtos import (
 )
 from app.application.content_library.repositories import ContentLibraryRepository
 from app.application.identity.dtos import UserDTO
+from app.infrastructure.config import get_settings
 
 
 class ContentLibraryService:
@@ -113,6 +116,7 @@ class ContentLibraryService:
                 actor=actor,
                 fallback_query=query,
                 result_holder=tool_result,
+                max_page_size=page_size,
             )
             parsed = self._agent.interpret_query(
                 provider=provider,
@@ -187,12 +191,27 @@ class ContentLibraryService:
         started_at: datetime,
         error: BaseException,
     ) -> NaturalLanguageLibrarySearchDTO:
-        interpreted_query = fallback_interpreted_query(query=query, page_size=page_size)
+        interpreted_query = fallback_interpreted_query(
+            query=query,
+            page_size=page_size,
+            current_time=started_at.astimezone(
+                ZoneInfo(get_settings().default_timezone)
+            ),
+        )
         items, total = self.search_items(
             actor=actor,
             query=LibrarySearchQuery(
                 keyword=interpreted_query.keyword,
                 search_terms=interpreted_query.search_terms,
+                category=interpreted_query.category,
+                source_type=interpreted_query.source_type,
+                source_id=interpreted_query.source_id,
+                status=interpreted_query.status,
+                published_from=interpreted_query.published_from,
+                published_to=interpreted_query.published_to,
+                min_score=interpreted_query.min_score,
+                has_summary=interpreted_query.has_summary,
+                sort=interpreted_query.sort,
             ),
             page=1,
             page_size=page_size,
@@ -223,6 +242,7 @@ class ContentLibraryService:
         actor: UserDTO,
         fallback_query: str,
         result_holder: dict[str, object],
+        max_page_size: int,
     ):
         def search_library_database(
             *,
@@ -262,7 +282,11 @@ class ContentLibraryService:
                     page_size=page_size,
                 ),
                 fallback_query=fallback_query,
-                page_size=page_size,
+                page_size=min(page_size, max_page_size),
+            )
+            interpreted = replace(
+                interpreted,
+                page_size=min(interpreted.page_size, max_page_size),
             )
             result_holder["query"] = interpreted
             try:
