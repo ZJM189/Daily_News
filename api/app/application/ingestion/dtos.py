@@ -34,6 +34,7 @@ class CollectExecutionResult:
     job_run_id: UUID | None
     total_count: int
     success_count: int
+    duplicate_count: int
     failure_count: int
 
 
@@ -57,6 +58,7 @@ class NormalizeExecutionResult:
     job_run_id: UUID | None
     total_count: int
     success_count: int
+    duplicate_count: int
     failure_count: int
 
 

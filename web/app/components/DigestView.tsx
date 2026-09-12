@@ -1,11 +1,8 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  CalendarDays,
+  Clock3,
   ExternalLink,
   FileSearch,
-  LockKeyhole,
-  RadioTower,
   Sparkles,
   TrendingUp
 } from "lucide-react";
@@ -132,33 +129,13 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
   if (!digest) {
     return (
       <div className="publicDigestStack">
-        <section className="publicDigestHero publicDigestEmptyHero">
-          <div className="publicHeroCopy">
-            <h1>今日 AI 简报正在生成</h1>
-            <p>
-              公开简报会在系统完成采集、去重、评分和摘要后自动展示。未登录用户可以直接阅读，登录后可进入工作区管理来源和任务。
-            </p>
-            <div className="publicHeroActions">
-              <Link className="publicPrimaryAction" href="/login?next=%2Fadmin%2Fjobs">
-                登录后台
-                <LockKeyhole size={16} />
-              </Link>
-              <Link className="publicSecondaryAction" href="/today">
-                刷新简报
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-          <div className="publicSignalPanel" aria-hidden="true">
-            <div className="publicRadar">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="publicSignalStats">
-              <strong>Waiting</strong>
-              <span>Next digest publish</span>
-            </div>
+        <section className="publicDigestEmpty">
+          <p className="publicIssueDate">{formatDigestDate(todayInShanghai())}</p>
+          <h1>今日 AI 简报正在整理</h1>
+          <p>采集和摘要完成后，本页会自动发布今日的 AI 行业要闻。</p>
+          <div className="publicEmptyActions">
+            <Link href="/today">刷新页面</Link>
+            <Link href="/login?next=%2Ftoday">登录工作区</Link>
           </div>
         </section>
       </div>
@@ -166,112 +143,107 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
   }
 
   const generatedLabel = formatTimestamp(digest.published_at || digest.generated_at || digest.created_at);
+  const topicCount = digest.stats.topic_count ?? digest.items.length;
+  const itemCount = digest.stats.item_count ?? digest.items.length;
+  const sourceCount = digest.stats.source_count ?? 0;
 
   return (
     <div className="publicDigestStack">
-      <section className="publicDigestHero">
-        <div className="publicHeroCopy">
-          <h1>{digest.title}</h1>
-          <p>{digest.overview_zh || "本期暂无概览。"}</p>
-          <div className="publicDigestMetaRow">
-            <span>
-              <CalendarDays size={15} />
-              {formatDigestDate(digest.digest_date)}
-            </span>
-            <span>
-              <RadioTower size={15} />
-              {generatedLabel ? `发布于 ${generatedLabel}` : "等待发布时间"}
-            </span>
-          </div>
-          <div className="publicHeroActions">
-            <a className="publicPrimaryAction" href="#public-digest-list">
-              阅读精选
-              <ArrowRight size={16} />
-            </a>
-            <Link className="publicSecondaryAction" href="/login?next=%2Ftoday">
-              登录进入工作区
-              <LockKeyhole size={16} />
-            </Link>
-          </div>
-        </div>
-        <div className="publicSignalPanel" aria-label="今日 AI 简报统计">
-          <div className="publicSignalHeader">
-            <span>Briefing Signal</span>
-            <strong>v{digest.version}</strong>
-          </div>
-          <div className="publicRadar" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="publicSignalMetrics">
-            <PublicMetric label="专题" value={digest.stats.topic_count ?? digest.items.length} />
-            <PublicMetric label="条目" value={digest.stats.item_count ?? digest.items.length} />
-            <PublicMetric label="来源" value={digest.stats.source_count ?? 0} />
-          </div>
+      <section className="publicDigestMasthead" aria-labelledby="public-digest-title">
+        <p className="publicIssueDate">{formatDigestDate(digest.digest_date)}</p>
+        <h1 id="public-digest-title">{digest.title}</h1>
+        <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
+        <div className="publicDigestFacts" aria-label="本期简报概况">
+          <span><strong>{topicCount}</strong> 个专题</span>
+          <span><strong>{itemCount}</strong> 条内容</span>
+          <span><strong>{sourceCount}</strong> 个来源</span>
+          <span className="publicUpdatedAt">
+            <Clock3 size={14} aria-hidden="true" />
+            {generatedLabel ? `${generatedLabel} 更新` : "发布时间待定"}
+          </span>
         </div>
       </section>
 
-      <section className="publicDigestSection" id="public-digest-list">
-        <div className="publicSectionHeading">
-          <div>
-            <h2>精选条目</h2>
-            <p>按全局重要性和来源均衡策略排序展示。</p>
-          </div>
-          <span>
-            <Sparkles size={14} />
-            中文摘要
-          </span>
-        </div>
+      <section className="publicPortalLayout" id="public-digest-list">
+        <div className="publicNewsStream" aria-label="今日要闻">
+          <header className="publicStreamHeader">
+            <h2>今日要闻</h2>
+            <span>{digest.items.length} 条精选</span>
+          </header>
 
-        <div className="publicDigestList">
-          {digest.items.map((item) => {
-            const sourceUrl = originalUrl(item.source_snapshot);
-            return (
-              <article className="publicDigestItem" key={item.id}>
-                <div className="publicItemRank">
-                  <TrendingUp size={15} />
-                  <strong>{item.rank}</strong>
-                </div>
-                <div className="publicItemBody">
+          <div className="publicDigestList">
+            {digest.items.map((item, index) => {
+              const sourceUrl = originalUrl(item.source_snapshot);
+              const category = categoryLabels[item.category_snapshot] || item.category_snapshot;
+              const source = sourceLabel(item.source_snapshot) || category;
+              const itemSourceCount = numberValue(item.source_snapshot.source_count);
+              const itemId = `public-digest-item-${item.rank}`;
+
+              return (
+                <article
+                  className={`publicDigestItem ${index === 0 ? "publicDigestLead" : ""}`}
+                  id={itemId}
+                  key={item.id}
+                >
                   <div className="publicItemMeta">
-                    <span>
-                      {sourceLabel(item.source_snapshot) ||
-                        categoryLabels[item.category_snapshot] ||
-                        item.category_snapshot}
-                    </span>
-                    <span>分数 {item.score_snapshot.toFixed(2)}</span>
-                    <span>来源 {String(item.source_snapshot.source_count ?? 0)}</span>
+                    <span className="publicItemRank">{String(item.rank).padStart(2, "0")}</span>
+                    <span className="publicItemSource">{source}</span>
+                    <span aria-hidden="true">/</span>
+                    <span>{category}</span>
+                    {itemSourceCount > 1 ? <span>{itemSourceCount} 个相关来源</span> : null}
                   </div>
-                  <h2>{item.title_snapshot}</h2>
-                  <p>{item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}</p>
-                  <p className="publicItemImportance">
-                    {item.importance_snapshot_zh || "重要性说明将在摘要任务完成后补齐。"}
+                  <h2>
+                    {sourceUrl ? (
+                      <a href={sourceUrl} target="_blank" rel="noreferrer">
+                        {item.title_snapshot}
+                      </a>
+                    ) : item.title_snapshot}
+                  </h2>
+                  <p className="publicItemSummary">
+                    {item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}
                   </p>
-                  <div className="publicItemFooter">
-                    <span>{categoryLabels[item.category_snapshot] || item.category_snapshot}</span>
+                  {item.importance_snapshot_zh ? (
+                    <p className="publicItemImportance">
+                      <strong>影响</strong>
+                      {item.importance_snapshot_zh}
+                    </p>
+                  ) : null}
+                  <footer className="publicItemFooter">
+                    <span>{formatItemTimestamp(item.created_at)} 收录</span>
                     {sourceUrl ? (
                       <a href={sourceUrl} target="_blank" rel="noreferrer">
                         查看原文
-                        <ExternalLink size={14} />
+                        <ExternalLink size={13} aria-hidden="true" />
                       </a>
                     ) : null}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
         </div>
-      </section>
-    </div>
-  );
-}
 
-function PublicMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <strong>{value}</strong>
-      <span>{label}</span>
+        <aside className="publicDigestIndex" aria-label="今日索引">
+          <header>
+            <h2>今日索引</h2>
+            <span>第 {digest.version} 版</span>
+          </header>
+          <ol>
+            {digest.items.map((item) => (
+              <li key={item.id}>
+                <a href={`#public-digest-item-${item.rank}`}>
+                  <span>{String(item.rank).padStart(2, "0")}</span>
+                  <span>
+                    <strong>{item.title_snapshot}</strong>
+                    <small>{categoryLabels[item.category_snapshot] || item.category_snapshot}</small>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+          <p>{itemCount} 条内容，来自 {sourceCount} 个信息源</p>
+        </aside>
+      </section>
     </div>
   );
 }
@@ -299,6 +271,11 @@ function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function numberValue(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function formatDigestDate(value: string) {
   const date = new Date(`${value}T00:00:00+08:00`);
   if (Number.isNaN(date.getTime())) return value;
@@ -315,9 +292,27 @@ function formatTimestamp(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatItemTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "本期";
+  return new Intl.DateTimeFormat("zh-CN", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+function todayInShanghai() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
 }

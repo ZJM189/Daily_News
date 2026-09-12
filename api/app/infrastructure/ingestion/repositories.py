@@ -114,6 +114,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         failure_count: int,
         error_message: str | None,
         ended_at: datetime,
+        duplicate_count: int = 0,
     ) -> None:
         self._session.execute(
             update(JobRun)
@@ -122,6 +123,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
                 status=JobStatus(status),
                 total_count=total_count,
                 success_count=success_count,
+                duplicate_count=duplicate_count,
                 failure_count=failure_count,
                 error_message=error_message,
                 ended_at=ended_at,

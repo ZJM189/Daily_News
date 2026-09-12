@@ -94,7 +94,7 @@ export default function AdminJobsPage() {
       columnHelper.columns([
         columnHelper.accessor("job_type", { id: "job_type", header: "任务", sortFn: "alphanumeric", cell: (info) => <JobName job={info.row.original} /> }),
         columnHelper.accessor("status", { id: "status", header: "状态", sortFn: "alphanumeric", cell: (info) => <JobStatus status={info.getValue()} /> }),
-        columnHelper.accessor((job) => job.success_count + job.failure_count, { id: "handled_count", header: "处理数量", sortFn: "basic", cell: (info) => <JobCount job={info.row.original} /> }),
+        columnHelper.accessor((job) => completedCount(job), { id: "handled_count", header: "处理结果", sortFn: "basic", cell: (info) => <JobCount job={info.row.original} /> }),
         columnHelper.accessor((job) => progressPercent(job), { id: "progress", header: "进度", sortFn: "basic", cell: (info) => <JobProgress job={info.row.original} /> }),
         columnHelper.accessor("created_at", { id: "created_at", header: "创建时间", sortFn: "datetime", sortDescFirst: true, cell: (info) => formatDateTime(info.getValue()) }),
         columnHelper.accessor((job) => durationSeconds(job), { id: "duration", header: "耗时", sortFn: "basic", cell: (info) => formatDuration(info.row.original) }),
@@ -224,7 +224,7 @@ export default function AdminJobsPage() {
 
       <section className="managementWorkspace">
         <div className="managementToolbar">
-          <div className="managementToolbarTitle"><div><h2>任务记录</h2><p>查看执行状态、处理数量、耗时和错误详情。</p></div><span className="managementResultCount">{filteredJobs.length} / {jobs.length}</span></div>
+          <div className="managementToolbarTitle"><div><h2>任务记录</h2><p>查看执行状态、总量、新增、重复和失败数量。</p></div><span className="managementResultCount">{filteredJobs.length} / {jobs.length}</span></div>
           <div className="managementFilters">
             <label className="managementSearchField"><Search size={16} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索任务、ID 或错误" /></label>
             <label className="managementFilterSelect"><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="筛选任务类型"><option value="all">全部类型</option>{jobTypes.map((type) => <option key={type} value={type}>{jobTypeLabel(type)}</option>)}</select><ChevronDown size={15} aria-hidden="true" /></label>
@@ -273,7 +273,11 @@ function JobStatus({ status }: { status: string }) {
 }
 
 function JobCount({ job }: { job: JobRun }) {
-  return <div className="jobCountCell"><strong>{job.success_count}/{job.total_count || "-"}</strong><span>失败 {job.failure_count}</span></div>;
+  const duplicateCount = job.duplicate_count ?? 0;
+  const total = job.total_count > 0 ? `${job.total_count} 条` : "-";
+  const totalLabel = jobTotalLabel(job.job_type);
+  const successLabel = jobSuccessLabel(job.job_type);
+  return <div className="jobCountCell"><strong>{totalLabel} {total}</strong><span>{successLabel} {job.success_count} · 重复 {duplicateCount} · 失败 {job.failure_count}</span></div>;
 }
 
 function JobMessage({ value }: { value: string | null }) {
@@ -289,8 +293,38 @@ function JobProgress({ job }: { job: JobRun }) {
 }
 
 function progressPercent(job: JobRun) {
-  const completedCount = job.success_count + job.failure_count;
-  return job.total_count > 0 ? Math.min(100, Math.round((completedCount / job.total_count) * 100)) : 0;
+  const completed = completedCount(job);
+  return job.total_count > 0 ? Math.min(100, Math.round((completed / job.total_count) * 100)) : 0;
+}
+
+function completedCount(job: JobRun) {
+  return job.success_count + (job.duplicate_count ?? 0) + job.failure_count;
+}
+
+function jobTotalLabel(jobType: string) {
+  const labels: Record<string, string> = {
+    collect: "拉取",
+    normalize: "整理",
+    rank: "评分",
+    dedupe: "候选",
+    summarize: "摘要",
+    generate_digest: "发布",
+    publish_digest: "发布"
+  };
+  return labels[jobType] ?? "处理";
+}
+
+function jobSuccessLabel(jobType: string) {
+  const labels: Record<string, string> = {
+    collect: "新增",
+    normalize: "生成",
+    rank: "评分",
+    dedupe: "归并",
+    summarize: "摘要",
+    generate_digest: "发布",
+    publish_digest: "发布"
+  };
+  return labels[jobType] ?? "成功";
 }
 
 function statusLabel(status: string) {

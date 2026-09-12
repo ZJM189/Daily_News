@@ -220,7 +220,8 @@ def worker_once() -> None:
     typer.echo(
         f"{job_label} job finished: "
         f"{result.job_run_id} total={result.total_count} "
-        f"success={result.success_count} failed={result.failure_count}"
+        f"success={result.success_count} duplicate={getattr(result, 'duplicate_count', 0)} "
+        f"failed={result.failure_count}"
     )
 
 

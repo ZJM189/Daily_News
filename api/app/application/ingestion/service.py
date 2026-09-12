@@ -35,6 +35,7 @@ class CollectJobExecutor:
 
         total_count = 0
         success_count = 0
+        duplicate_count = 0
         failure_count = 0
         errors: list[str] = []
 
@@ -64,13 +65,14 @@ class CollectJobExecutor:
             try:
                 collected_items = collector.collect(source, since=since)
                 total_count += len(collected_items)
-                inserted_count, _duplicate_count = self._repository.save_raw_items(
+                inserted_count, source_duplicate_count = self._repository.save_raw_items(
                     source=source,
                     job_run_id=job_run_id,
                     items=collected_items,
                     fetched_at=fetched_at,
                 )
                 success_count += inserted_count
+                duplicate_count += source_duplicate_count
                 self._repository.mark_source_success(source_id=source.id, fetched_at=fetched_at)
             # Source isolation: one broken external source must not stop the whole collect job.
             except Exception as exc:  # noqa: BLE001
@@ -97,11 +99,13 @@ class CollectJobExecutor:
             failure_count=failure_count,
             error_message="; ".join(errors)[:4000] if errors else None,
             ended_at=ended_at,
+            duplicate_count=duplicate_count,
         )
         return CollectExecutionResult(
             job_run_id=job_run_id,
             total_count=total_count,
             success_count=success_count,
+            duplicate_count=duplicate_count,
             failure_count=failure_count,
         )
 
@@ -183,11 +187,13 @@ class NormalizeJobExecutor:
             failure_count=failure_count,
             error_message="; ".join(errors)[:4000] if errors else None,
             ended_at=ended_at,
+            duplicate_count=duplicate_count,
         )
         return NormalizeExecutionResult(
             job_run_id=job_run_id,
             total_count=total_count,
             success_count=success_count,
+            duplicate_count=duplicate_count,
             failure_count=failure_count,
         )
 

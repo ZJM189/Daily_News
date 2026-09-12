@@ -58,9 +58,9 @@ const schedulerConfigs = [
 ];
 
 const jobs = [
-  { id: "job-running-0001", job_type: "collect", trigger_type: "manual", status: "running", source_id: null, parent_job_run_id: null, created_by: "admin-1", params: {}, total_count: 120, success_count: 72, failure_count: 0, error_message: null, error_detail: null, started_at: "2026-09-11T09:50:00+08:00", ended_at: null, created_at: "2026-09-11T09:50:00+08:00" },
-  { id: "job-success-0002", job_type: "summarize", trigger_type: "scheduled", status: "success", source_id: null, parent_job_run_id: null, created_by: null, params: {}, total_count: 30, success_count: 30, failure_count: 0, error_message: null, error_detail: null, started_at: "2026-09-11T08:04:00+08:00", ended_at: "2026-09-11T08:06:10+08:00", created_at: "2026-09-11T08:04:00+08:00" },
-  { id: "job-failed-0003", job_type: "normalize", trigger_type: "manual", status: "failed", source_id: null, parent_job_run_id: null, created_by: "admin-1", params: {}, total_count: 12, success_count: 9, failure_count: 3, error_message: "3 条内容缺少可解析的正文，任务已停止。", error_detail: null, started_at: "2026-09-10T18:00:00+08:00", ended_at: "2026-09-10T18:00:24+08:00", created_at: "2026-09-10T18:00:00+08:00" }
+  { id: "job-running-0001", job_type: "collect", trigger_type: "manual", status: "running", source_id: null, parent_job_run_id: null, created_by: "admin-1", params: {}, total_count: 120, success_count: 72, duplicate_count: 48, failure_count: 0, error_message: null, error_detail: null, started_at: "2026-09-11T09:50:00+08:00", ended_at: null, created_at: "2026-09-11T09:50:00+08:00" },
+  { id: "job-success-0002", job_type: "summarize", trigger_type: "scheduled", status: "success", source_id: null, parent_job_run_id: null, created_by: null, params: {}, total_count: 30, success_count: 30, duplicate_count: 0, failure_count: 0, error_message: null, error_detail: null, started_at: "2026-09-11T08:04:00+08:00", ended_at: "2026-09-11T08:06:10+08:00", created_at: "2026-09-11T08:04:00+08:00" },
+  { id: "job-failed-0003", job_type: "normalize", trigger_type: "manual", status: "failed", source_id: null, parent_job_run_id: null, created_by: "admin-1", params: {}, total_count: 12, success_count: 9, duplicate_count: 0, failure_count: 3, error_message: "3 条内容缺少可解析的正文，任务已停止。", error_detail: null, started_at: "2026-09-10T18:00:00+08:00", ended_at: "2026-09-10T18:00:24+08:00", created_at: "2026-09-10T18:00:00+08:00" }
 ];
 
 const sources = [
@@ -123,6 +123,8 @@ test("admin management surfaces share one visual system and working drawers", as
   await page.goto("/admin/jobs");
   await expect(page.getByRole("heading", { name: "任务日志" })).toBeVisible();
   await expect(page.getByText("简报流水线")).toBeVisible();
+  await expect(page.getByText("拉取 120 条", { exact: true })).toBeVisible();
+  await expect(page.getByText("新增 72 · 重复 48 · 失败 0", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "单步任务" }).click();
   await expect(page.getByRole("dialog").getByRole("heading", { name: "执行单步任务" })).toBeVisible();
   await page.getByRole("button", { name: "关闭" }).click();

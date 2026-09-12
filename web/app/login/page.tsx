@@ -5,11 +5,13 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="loginPage">
-          <section className="loginPanel">
-            <div className="spinner" />
-          </section>
-        </main>
+        <div className="loginPage">
+          <main className="loginMain">
+            <section className="loginPanel loginLoadingPanel">
+              <div className="spinner" />
+            </section>
+          </main>
+        </div>
       }
     >
       <LoginForm />

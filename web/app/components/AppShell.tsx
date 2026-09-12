@@ -12,6 +12,7 @@ import {
   Database,
   History,
   ListChecks,
+  LogIn,
   LogOut,
   Menu,
   Newspaper,
@@ -24,6 +25,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { apiPost, getCurrentUser } from "../../lib/api";
 import type { User } from "../../lib/types";
+import RadarMark from "./RadarMark";
 import { FavoritesProvider } from "./FavoritesProvider";
 import { LibraryChatWidget } from "./LibraryChatWidget";
 
@@ -349,21 +351,18 @@ function PublicShell({ children, pathname }: { children: React.ReactNode; pathna
   return (
     <div className="publicFrame">
       <header className="publicTopbar">
-        <Link href="/" className="publicBrand" aria-label="Daily News 公开首页">
-          <span className="publicBrandOrb">DN</span>
-          <span>
-            <strong>Daily News</strong>
-            <small>AI BRIEFING</small>
-          </span>
-        </Link>
-        <nav className="publicNav" aria-label="公开导航">
-          <Link className={pathname === "/" || pathname === "/today" ? "active" : ""} href="/today">
-            今日 AI 简报
+        <div className="publicTopbarInner">
+          <nav className="publicNav" aria-label="公开导航">
+            <Link className={pathname === "/" || pathname === "/today" ? "active" : ""} href="/today">
+              <RadarMark />
+              每日 AI 简报
+            </Link>
+          </nav>
+          <Link className="publicLoginButton" href={loginHref} aria-label="登录进入工作区">
+            <LogIn size={15} aria-hidden="true" />
+            <span>登录进入工作区</span>
           </Link>
-        </nav>
-        <Link className="publicLoginButton" href={loginHref}>
-          登录进入工作区
-        </Link>
+        </div>
       </header>
       {children}
     </div>

@@ -67,6 +67,7 @@ export type JobRun = {
   params: Record<string, unknown>;
   total_count: number;
   success_count: number;
+  duplicate_count: number;
   failure_count: number;
   error_message: string | null;
   error_detail: Record<string, unknown> | null;

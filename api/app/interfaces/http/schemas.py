@@ -455,6 +455,7 @@ class JobRunResponse(BaseModel):
     params: dict[str, Any]
     total_count: int
     success_count: int
+    duplicate_count: int
     failure_count: int
     error_message: str | None
     error_detail: dict[str, Any] | None

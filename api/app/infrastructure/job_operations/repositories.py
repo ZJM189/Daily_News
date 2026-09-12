@@ -185,6 +185,7 @@ class SqlAlchemyJobOperationsRepository(JobOperationsRepository):
             params=job.params,
             total_count=job.total_count,
             success_count=job.success_count,
+            duplicate_count=job.duplicate_count,
             failure_count=job.failure_count,
             error_message=job.error_message,
             error_detail=job.error_detail,

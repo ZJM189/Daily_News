@@ -78,16 +78,54 @@ test("anonymous users can read public today digest without private widgets", asy
 
   await expect(page.getByRole("heading", { name: "今日 AI 情报简报" })).toBeVisible();
   await expect(page.getByText("今天的公开简报聚合了研究论文")).toBeVisible();
+  const publicDigestNav = page.locator(".publicNav a");
+  await expect(publicDigestNav).toHaveText("每日 AI 简报");
+  await expect(publicDigestNav).toBeVisible();
+  await expect(publicDigestNav).toHaveCSS("font-size", "22px");
+  await expect(page.locator(".radarMark")).toHaveCSS("width", "34px");
+  await expect(page.locator(".radarMark")).toHaveCSS("border-radius", "50%");
+  await expect(page.locator(".radarMarkBlip")).toHaveCSS("animation-name", "publicNavRadarBlip");
+  await expect
+    .poll(() =>
+      page.locator(".radarMark").evaluate((element) =>
+        getComputedStyle(element, "::before").animationName
+      )
+    )
+    .toBe("publicNavRadarSweep");
   await expect(
     page.getByRole("banner").getByRole("link", { name: "登录进入工作区" })
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "打开信息库智能助手" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "收藏", exact: true })).toHaveCount(0);
+  await expect(page.locator(".publicRadar")).toHaveCount(0);
+  await expect(page.getByText("分数 94.25")).toHaveCount(0);
 
   await page.goto("/today");
 
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByRole("heading", { name: "今日 AI 情报简报" })).toBeVisible();
+  await expect(page.getByLabel("本期简报概况")).toContainText("2 个专题");
+  await expect(page.getByLabel("本期简报概况")).toContainText("3 个来源");
+
+  const firstItem = page.locator("#public-digest-item-1");
+  const firstTitle = firstItem.getByRole("heading", { name: "开源 Agent 框架加入可观测工具" });
+  const firstSummary = firstItem.getByText("项目新增调用链和工具执行记录");
+  await expect(firstTitle).toBeVisible();
+  await expect(firstSummary).toBeVisible();
+
+  const index = page.getByRole("complementary", { name: "今日索引" });
+  if (testInfo.project.name === "mobile") {
+    await expect(index).toBeHidden();
+    const titleBox = await firstTitle.boundingBox();
+    const summaryBox = await firstSummary.boundingBox();
+    const viewport = page.viewportSize();
+    expect(titleBox && viewport && titleBox.y < viewport.height).toBeTruthy();
+    expect(summaryBox && viewport && summaryBox.y + summaryBox.height <= viewport.height).toBeTruthy();
+  } else {
+    await expect(index).toBeVisible();
+    await expect(index.getByRole("link")).toHaveCount(2);
+  }
+
   await page.screenshot({
     path: testInfo.outputPath("public-briefing.png"),
     fullPage: true
@@ -95,13 +133,54 @@ test("anonymous users can read public today digest without private widgets", asy
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
   ).toBeTruthy();
+
+  if (testInfo.project.name === "mobile") {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto("/");
+    const compactNavBox = await page.locator(".publicNav").boundingBox();
+    const compactLoginBox = await page.getByRole("banner").getByRole("link", {
+      name: "登录进入工作区"
+    }).boundingBox();
+    expect(
+      compactNavBox && compactLoginBox && compactNavBox.x + compactNavBox.width < compactLoginBox.x
+    ).toBeTruthy();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    ).toBeTruthy();
+  }
 });
 
-test("anonymous private routes redirect to login with next path", async ({ page }) => {
+test("anonymous private routes redirect to a responsive login form", async ({ page }, testInfo) => {
   await page.goto("/library");
 
   await expect(page).toHaveURL(/\/login\?next=%2Flibrary$/);
   await expect(page.getByRole("heading", { name: "登录工作区" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "每日 AI 简报" })).toBeVisible();
+  const loginNameInput = page.getByPlaceholder("请输入账号或邮箱");
+  const passwordInput = page.getByPlaceholder("请输入密码");
+  const loginButton = page.getByRole("button", { name: "登录" });
+  await expect(loginNameInput).toBeVisible();
+  await expect(passwordInput).toBeVisible();
+  await expect(loginButton).toBeVisible();
+  await expect(loginButton).toBeDisabled();
+  await expect(page.getByText("使用管理员创建的账号继续。", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("登录后将根据你的权限进入对应页面。", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".loginVisual, .loginVisualGrid")).toHaveCount(0);
+  if (testInfo.project.name === "mobile") {
+    const buttonBox = await loginButton.boundingBox();
+    const viewport = page.viewportSize();
+    expect(buttonBox && viewport && buttonBox.y + buttonBox.height <= viewport.height).toBeTruthy();
+  }
+  await page.screenshot({
+    path: testInfo.outputPath("login-page.png"),
+    fullPage: true
+  });
+  await loginNameInput.fill("reader@example.com");
+  await passwordInput.fill("password");
+  await expect(loginButton).toBeEnabled();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+  ).toBeTruthy();
 });
 
 test("authenticated users keep the responsive workspace navigation on today page", async ({

@@ -38,6 +38,7 @@ class IngestionRepository(Protocol):
         failure_count: int,
         error_message: str | None,
         ended_at: datetime,
+        duplicate_count: int = 0,
     ) -> None:
         raise NotImplementedError
 

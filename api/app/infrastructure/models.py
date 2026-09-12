@@ -432,6 +432,7 @@ class JobRun(Base):
     )
     total_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     success_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    duplicate_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     failure_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     error_message: Mapped[str | None] = mapped_column(Text)
     error_detail: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
