@@ -1,4 +1,9 @@
-from app.application.ingestion.service import extract_text_field, hash_title, normalize_title
+from app.application.ingestion.service import (
+    extract_standard_fields,
+    extract_text_field,
+    hash_title,
+    normalize_title,
+)
 from app.infrastructure.ingestion.repositories import _category_for_source
 from app.infrastructure.models import CategoryCode, Source, SourceStatus, SourceType
 
@@ -23,6 +28,71 @@ def test_extract_text_field_reads_first_available_child_text() -> None:
     }
 
     assert extract_text_field(payload, "description", "summary") == "A useful update."
+
+
+def test_extract_text_field_reads_top_level_text() -> None:
+    payload = {"description": "  AI   coding agent.  "}
+
+    assert extract_text_field(payload, "description", "summary") == "AI coding agent."
+
+
+def test_extract_standard_fields_maps_github_payload() -> None:
+    fields = extract_standard_fields(
+        {
+            "description": "AI coding agent",
+            "metrics": {"stars": 1000, "forks": 40, "open_issues": 5},
+            "source_payload": {"ignored": "large upstream payload"},
+        }
+    )
+
+    assert fields.summary_original == "AI coding agent"
+    assert fields.content_snippet == "AI coding agent"
+    assert fields.tags == []
+    assert fields.metrics == {"stars": 1000, "forks": 40, "open_issues": 5}
+
+
+def test_extract_standard_fields_maps_product_hunt_topics_to_tags() -> None:
+    fields = extract_standard_fields(
+        {
+            "description": "Summarize daily AI news",
+            "topics": ["Artificial Intelligence", "AI", "AI"],
+            "metrics": {"votes": 10, "comments": 2},
+        }
+    )
+
+    assert fields.summary_original == "Summarize daily AI news"
+    assert fields.tags == ["Artificial Intelligence", "AI"]
+    assert fields.metrics == {"votes": 10, "comments": 2}
+
+
+def test_extract_standard_fields_maps_hugging_face_tags_and_metrics() -> None:
+    fields = extract_standard_fields(
+        {
+            "description": "text-generation / transformers, llm",
+            "tags": ["transformers", "llm"],
+            "metrics": {"likes": 500, "downloads": 12000, "ignored": None},
+        }
+    )
+
+    assert fields.summary_original == "text-generation / transformers, llm"
+    assert fields.tags == ["transformers", "llm"]
+    assert fields.metrics == {"likes": 500, "downloads": 12000}
+
+
+def test_extract_standard_fields_maps_rss_children_category_to_tags() -> None:
+    fields = extract_standard_fields(
+        {
+            "children": {
+                "description": {"text": "RAG research summary"},
+                "category": {"text": "cs.AI"},
+            }
+        }
+    )
+
+    assert fields.summary_original == "RAG research summary"
+    assert fields.content_snippet == "RAG research summary"
+    assert fields.tags == ["cs.AI"]
+    assert fields.metrics == {}
 
 
 def test_category_for_source_uses_source_rules() -> None:

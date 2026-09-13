@@ -85,6 +85,8 @@ class IngestionRepository(Protocol):
         title_hash: str,
         summary_original: str | None,
         content_snippet: str | None,
+        tags: list[str],
+        metrics: dict[str, object],
         language: str | None,
     ) -> bool:
         raise NotImplementedError

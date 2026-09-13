@@ -243,6 +243,8 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         title_hash: str,
         summary_original: str | None,
         content_snippet: str | None,
+        tags: list[str],
+        metrics: dict[str, object],
         language: str | None,
     ) -> bool:
         if self._item_exists(raw_item=raw_item, title_hash=title_hash):
@@ -264,8 +266,8 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
                 content_snippet=content_snippet,
                 language=language,
                 category=category,
-                tags=[],
-                metrics={},
+                tags=tags,
+                metrics=metrics,
                 published_at=raw_item.published_at,
                 collected_at=raw_item.fetched_at,
                 status=ItemStatus.NORMALIZED,
@@ -618,6 +620,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
             title=item.title,
             summary_original=item.summary_original,
             content_snippet=item.content_snippet,
+            tags=list(item.tags or []),
             published_at=item.published_at,
             collected_at=item.collected_at,
         )

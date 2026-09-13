@@ -72,6 +72,7 @@ class ItemForRankingDTO:
     title: str
     summary_original: str | None
     content_snippet: str | None
+    tags: list[str]
     published_at: datetime | None
     collected_at: datetime
 

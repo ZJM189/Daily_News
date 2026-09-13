@@ -15,6 +15,7 @@ def test_score_item_combines_source_recency_keywords_and_completeness() -> None:
         title="OpenAI releases new GPT agent model",
         summary_original="A new AI model benchmark is available.",
         content_snippet=None,
+        tags=[],
         published_at=now - timedelta(hours=2),
         collected_at=now,
     )
@@ -39,6 +40,7 @@ def test_score_item_clamps_score_to_100() -> None:
         title="OpenAI GPT Claude Gemini DeepSeek AI agent model benchmark research safety RAG",
         summary_original="LLM inference eval paper for artificial intelligence.",
         content_snippet="ChatGPT agents and models.",
+        tags=[],
         published_at=now,
         collected_at=now,
     )
@@ -46,3 +48,23 @@ def test_score_item_clamps_score_to_100() -> None:
     score, _breakdown = score_item(item, now=now)
 
     assert score == 100
+
+
+def test_score_item_uses_standardized_tags_for_keyword_hits() -> None:
+    now = datetime(2026, 9, 2, 8, 0, tzinfo=UTC)
+    item = ItemForRankingDTO(
+        id=uuid4(),
+        source_id=uuid4(),
+        source_type="hugging_face",
+        source_weight=10,
+        title="org/package",
+        summary_original=None,
+        content_snippet=None,
+        tags=["transformers", "RAG"],
+        published_at=now,
+        collected_at=now,
+    )
+
+    _score, breakdown = score_item(item, now=now)
+
+    assert breakdown["keyword_hits"] == ["rag"]

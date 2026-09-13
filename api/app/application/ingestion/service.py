@@ -1,5 +1,6 @@
 import hashlib
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -139,24 +140,15 @@ class NormalizeJobExecutor:
         for raw_item in raw_items:
             try:
                 normalized_title = normalize_title(raw_item.title)
+                standard_fields = extract_standard_fields(raw_item.raw_payload)
                 created = self._repository.create_normalized_item(
                     raw_item=raw_item,
                     normalized_title=normalized_title,
                     title_hash=hash_title(normalized_title),
-                    summary_original=extract_text_field(
-                        raw_item.raw_payload,
-                        "description",
-                        "summary",
-                        "content",
-                        "encoded",
-                    ),
-                    content_snippet=extract_text_field(
-                        raw_item.raw_payload,
-                        "description",
-                        "summary",
-                        "content",
-                        "encoded",
-                    ),
+                    summary_original=standard_fields.summary_original,
+                    content_snippet=standard_fields.content_snippet,
+                    tags=standard_fields.tags,
+                    metrics=standard_fields.metrics,
                     language=_language_or_default(params.get("language")),
                 )
                 if created:
@@ -307,23 +299,125 @@ def hash_title(normalized_title: str) -> str:
     return hashlib.sha256(normalized_title.encode("utf-8")).hexdigest()
 
 
+@dataclass(frozen=True, slots=True)
+class StandardizedPayloadFields:
+    summary_original: str | None
+    content_snippet: str | None
+    tags: list[str]
+    metrics: dict[str, object]
+
+
+def extract_standard_fields(payload: dict[str, Any]) -> StandardizedPayloadFields:
+    return StandardizedPayloadFields(
+        summary_original=extract_text_field(
+            payload,
+            "description",
+            "summary",
+            "tagline",
+            "content",
+            "encoded",
+        ),
+        content_snippet=extract_text_field(
+            payload,
+            "content",
+            "encoded",
+            "description",
+            "summary",
+            "tagline",
+        ),
+        tags=extract_tags(payload),
+        metrics=extract_metrics(payload),
+    )
+
+
 def extract_text_field(payload: dict[str, Any], *field_names: str) -> str | None:
+    for field_name in field_names:
+        text = _extract_text_value(payload.get(field_name))
+        if text:
+            return text
+
     children = payload.get("children")
     if not isinstance(children, dict):
         return None
 
     for field_name in field_names:
-        value = children.get(field_name)
-        if not isinstance(value, dict):
+        text = _extract_text_value(children.get(field_name))
+        if text:
+            return text
+    return None
+
+
+def extract_tags(payload: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for field_name in ("tags", "topics", "categories", "category"):
+        values.extend(_extract_tag_values(payload.get(field_name)))
+
+    children = payload.get("children")
+    if isinstance(children, dict):
+        for field_name in ("tags", "topics", "categories", "category"):
+            values.extend(_extract_tag_values(children.get(field_name)))
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        tag = _compact_tag(value)
+        key = tag.lower()
+        if not tag or key in seen:
             continue
+        seen.add(key)
+        deduped.append(tag)
+        if len(deduped) >= 30:
+            break
+    return deduped
+
+
+def extract_metrics(payload: dict[str, Any]) -> dict[str, object]:
+    metrics = payload.get("metrics")
+    if not isinstance(metrics, dict):
+        return {}
+
+    normalized: dict[str, object] = {}
+    for key, value in metrics.items():
+        if not isinstance(key, str):
+            continue
+        metric_key = key.strip()
+        if not metric_key or value is None:
+            continue
+        if isinstance(value, bool | int | float | str):
+            normalized[metric_key[:80]] = value
+    return normalized
+
+
+def _extract_text_value(value: object) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return _compact_text(value)
+    if isinstance(value, dict):
         text = value.get("text")
         if isinstance(text, str) and text.strip():
             return _compact_text(text)
     return None
 
 
+def _extract_tag_values(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        text = value.get("text")
+        return [text] if isinstance(text, str) else []
+    if isinstance(value, list):
+        tags: list[str] = []
+        for item in value:
+            tags.extend(_extract_tag_values(item))
+        return tags
+    return []
+
+
 def _compact_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()[:4000]
+
+
+def _compact_tag(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()[:80]
 
 
 AI_KEYWORDS = {
@@ -395,7 +489,14 @@ def _recency_component(timestamp: datetime, *, now: datetime) -> float:
 
 def _keyword_hits(item: ItemForRankingDTO) -> list[str]:
     haystack = " ".join(
-        part for part in [item.title, item.summary_original, item.content_snippet] if part
+        part
+        for part in [
+            item.title,
+            item.summary_original,
+            item.content_snippet,
+            " ".join(item.tags),
+        ]
+        if part
     ).lower()
     return sorted(keyword for keyword in AI_KEYWORDS if keyword in haystack)
 
