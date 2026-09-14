@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRef, type MouseEvent } from "react";
 import {
   CalendarDays,
   Clock3,
@@ -295,11 +296,27 @@ function PublicDigestDatePicker({
   maxDate?: string;
   onChange?: (date: string) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const openDatePicker = (event: MouseEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    const input = inputRef.current;
+    if (!input) return;
+
+    input.focus();
+    try {
+      input.showPicker?.();
+    } catch {
+      input.click();
+    }
+  };
+
   return (
-    <label className="publicDatePicker">
+    <label className="publicDatePicker" onClick={openDatePicker}>
       <CalendarDays size={18} aria-hidden="true" />
       <span className="publicDatePickerLabel">{formatDigestDate(value)}</span>
       <input
+        ref={inputRef}
         aria-label="选择简报日期"
         max={maxDate}
         type="date"

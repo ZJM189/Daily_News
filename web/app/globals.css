@@ -4978,6 +4978,7 @@ button {
   opacity: 0;
   padding: 0;
   cursor: pointer;
+  pointer-events: none;
 }
 
 .publicDigestMasthead h1,

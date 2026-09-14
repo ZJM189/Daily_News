@@ -93,6 +93,8 @@ test("anonymous users can read public today digest without private widgets", asy
   await expect(page.getByText("今天的公开简报聚合了研究论文")).toBeVisible();
   const datePicker = page.getByLabel("选择简报日期");
   await expect(datePicker).toBeVisible();
+  await page.locator(".publicDatePicker").click();
+  await expect(datePicker).toBeFocused();
   await expect(datePicker).toHaveValue("2026-09-09");
   await expect(page.locator(".publicDatePickerLabel")).toHaveCSS(
     "font-size",
