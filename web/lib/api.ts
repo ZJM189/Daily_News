@@ -98,6 +98,10 @@ export function getTodayDigest(): Promise<Digest | null> {
   return apiGet<Digest | null>("/api/v1/digests/today");
 }
 
+export function getPublicDigestByDate(date: string): Promise<Digest | null> {
+  return apiGet<Digest | null>(`/api/v1/digests/public/${date}`);
+}
+
 export function getDigestByDate(date: string): Promise<Digest | null> {
   return apiGet<Digest | null>(`/api/v1/digests/${date}`);
 }

@@ -23,6 +23,16 @@ async def get_today_digest(
     return {"data": _detail_to_response(detail)}
 
 
+@router.get("/public/{digest_date}")
+async def get_public_digest(
+    digest_date: date,
+    service: Annotated[DigestQueryService, Depends(get_digest_query_service)],
+    version: Annotated[int | None, Query(ge=1)] = None,
+) -> dict[str, object]:
+    detail = service.get_published_digest(digest_date=digest_date, version=version)
+    return {"data": _detail_to_response(detail)}
+
+
 @router.get("/{digest_date}")
 async def get_digest(
     digest_date: date,

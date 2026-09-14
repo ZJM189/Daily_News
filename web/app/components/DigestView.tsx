@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  CalendarDays,
   Clock3,
   ExternalLink,
   FileSearch,
@@ -31,11 +32,27 @@ const sourceTypeLabels: Record<string, string> = {
 type DigestViewProps = {
   digest: Digest | null;
   mode?: "workspace" | "public";
+  selectedDate?: string;
+  maxDate?: string;
+  onDigestDateChange?: (date: string) => void;
 };
 
-export function DigestView({ digest, mode = "workspace" }: DigestViewProps) {
+export function DigestView({
+  digest,
+  mode = "workspace",
+  selectedDate,
+  maxDate,
+  onDigestDateChange
+}: DigestViewProps) {
   if (mode === "public") {
-    return <PublicDigestView digest={digest} />;
+    return (
+      <PublicDigestView
+        digest={digest}
+        selectedDate={selectedDate}
+        maxDate={maxDate}
+        onDigestDateChange={onDigestDateChange}
+      />
+    );
   }
 
   if (!digest) {
@@ -125,14 +142,30 @@ export function DigestView({ digest, mode = "workspace" }: DigestViewProps) {
   );
 }
 
-function PublicDigestView({ digest }: { digest: Digest | null }) {
+function PublicDigestView({
+  digest,
+  selectedDate,
+  maxDate,
+  onDigestDateChange
+}: {
+  digest: Digest | null;
+  selectedDate?: string;
+  maxDate?: string;
+  onDigestDateChange?: (date: string) => void;
+}) {
+  const activeDate = digest?.digest_date || selectedDate || todayInShanghai();
+
   if (!digest) {
     return (
       <div className="publicDigestStack">
         <section className="publicDigestEmpty">
-          <p className="publicIssueDate">{formatDigestDate(todayInShanghai())}</p>
-          <h1>今日 AI 简报正在整理</h1>
-          <p>采集和摘要完成后，本页会自动发布今日的 AI 行业要闻。</p>
+          <PublicDigestDatePicker
+            value={activeDate}
+            maxDate={maxDate}
+            onChange={onDigestDateChange}
+          />
+          <h1>{activeDate === todayInShanghai() ? "今日 AI 简报正在整理" : "所选日期暂无 AI 简报"}</h1>
+          <p>采集和摘要完成后，本页会自动发布对应日期的 AI 行业要闻。</p>
           <div className="publicEmptyActions">
             <Link href="/today">刷新页面</Link>
             <Link href="/login?next=%2Ftoday">登录工作区</Link>
@@ -151,7 +184,11 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
   return (
     <div className="publicDigestStack">
       <section className="publicDigestMasthead" aria-labelledby="public-digest-title">
-        <p className="publicIssueDate">{formatDigestDate(digest.digest_date)}</p>
+        <PublicDigestDatePicker
+          value={digest.digest_date}
+          maxDate={maxDate}
+          onChange={onDigestDateChange}
+        />
         <h1 id="public-digest-title">{title}</h1>
         <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
         <div className="publicDigestFacts" aria-label="本期简报概况">
@@ -246,6 +283,32 @@ function PublicDigestView({ digest }: { digest: Digest | null }) {
         </aside>
       </section>
     </div>
+  );
+}
+
+function PublicDigestDatePicker({
+  value,
+  maxDate,
+  onChange
+}: {
+  value: string;
+  maxDate?: string;
+  onChange?: (date: string) => void;
+}) {
+  return (
+    <label className="publicDatePicker">
+      <CalendarDays size={18} aria-hidden="true" />
+      <span className="publicDatePickerLabel">{formatDigestDate(value)}</span>
+      <input
+        aria-label="选择简报日期"
+        max={maxDate}
+        type="date"
+        value={value}
+        onChange={(event) => {
+          if (event.target.value) onChange?.(event.target.value);
+        }}
+      />
+    </label>
   );
 }
 

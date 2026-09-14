@@ -59,6 +59,16 @@ const todayDigest = {
   }
 };
 
+const previousDigest = {
+  data: {
+    ...todayDigest.data,
+    id: "digest-public-previous-test",
+    digest_date: "2026-09-08",
+    title: "上一期 AI 情报简报",
+    overview_zh: "这是用户选择日期后加载的上一期公开 AI 简报。"
+  }
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/auth/me", async (route) => {
     await route.fulfill({
@@ -69,6 +79,9 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/digests/today", async (route) => {
     await route.fulfill({ status: 200, json: todayDigest });
   });
+  await page.route("**/api/v1/digests/public/2026-09-08", async (route) => {
+    await route.fulfill({ status: 200, json: previousDigest });
+  });
 });
 
 test("anonymous users can read public today digest without private widgets", async ({
@@ -78,6 +91,17 @@ test("anonymous users can read public today digest without private widgets", asy
 
   await expect(page.getByRole("heading", { name: "今日 AI 情报简报" })).toBeVisible();
   await expect(page.getByText("今天的公开简报聚合了研究论文")).toBeVisible();
+  const datePicker = page.getByLabel("选择简报日期");
+  await expect(datePicker).toBeVisible();
+  await expect(datePicker).toHaveValue("2026-09-09");
+  await expect(page.locator(".publicDatePickerLabel")).toHaveCSS(
+    "font-size",
+    testInfo.project.name === "mobile" ? "17px" : "18px"
+  );
+  await datePicker.fill("2026-09-08");
+  await expect(page.getByRole("heading", { name: "上一期 AI 情报简报" })).toBeVisible();
+  await expect(page.getByText("这是用户选择日期后加载的上一期公开 AI 简报。")).toBeVisible();
+  await expect(datePicker).toHaveValue("2026-09-08");
   const publicDigestNav = page.locator(".publicNav a");
   await expect(publicDigestNav).toHaveText("每日 AI 简报");
   await expect(publicDigestNav).toBeVisible();

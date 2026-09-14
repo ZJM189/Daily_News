@@ -216,6 +216,20 @@
 - 无 digest 时返回 `data: null`，前端展示空状态。
 - 当前实现返回最新 published 版本及 `digest_items` 快照；个性化过滤后续在该接口上扩展。
 
+### 5.1.1 公开首页按日期查询
+
+`GET /api/v1/digests/public/{date}`
+
+路径参数：
+
+- `date`：格式 `YYYY-MM-DD`。
+
+说明：
+
+- 不要求登录，仅返回指定日期最新的 `published` digest。
+- 无对应 digest 时返回 `data: null`。
+- 该接口供公开首页日期筛选使用；未来日期由前端禁止选择，后端仍以已发布状态作为数据边界。
+
 ### 5.2 历史简报
 
 `GET /api/v1/digests/{date}`

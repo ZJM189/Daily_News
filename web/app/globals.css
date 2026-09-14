@@ -483,6 +483,9 @@ select:focus {
 
 .contentColumn {
   min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -533,6 +536,19 @@ select:focus {
 
 .mobileBottomNav {
   display: none;
+}
+
+.appFooter {
+  flex: 0 0 auto;
+  width: min(1280px, 100%);
+  margin: auto auto 0;
+  border-top: 1px solid var(--line);
+  padding: 18px 28px 24px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .naturalSearchTrigger {
@@ -4748,8 +4764,20 @@ button {
   --public-line: #d9dee5;
   --public-accent: #176b5b;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   color: var(--public-ink);
+}
+
+.publicFrame .appFooter,
+.loginPage .appFooter {
+  width: min(1180px, 100%);
+}
+
+.publicFrame .appFooter {
+  border-top-color: var(--public-line);
+  color: var(--public-muted);
 }
 
 .publicTopbar {
@@ -4912,12 +4940,44 @@ button {
   padding: 2px 0 30px;
 }
 
-.publicIssueDate {
-  margin: 0 0 12px;
+.publicDatePicker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  margin: 0 0 18px;
+  border-bottom: 2px solid var(--public-accent);
   color: var(--public-accent);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.5;
+  cursor: pointer;
+}
+
+.publicDatePicker:focus-within {
+  outline: 2px solid rgba(23, 107, 91, 0.2);
+  outline-offset: 5px;
+}
+
+.publicDatePicker svg {
+  flex: 0 0 auto;
+}
+
+.publicDatePickerLabel {
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.publicDatePicker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  opacity: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .publicDigestMasthead h1,
@@ -5197,7 +5257,7 @@ button {
   padding: 54px 0;
 }
 
-.publicDigestEmpty > p:not(.publicIssueDate) {
+.publicDigestEmpty > p {
   max-width: 620px;
   margin: 16px 0 0;
   color: var(--public-muted);
@@ -5228,7 +5288,7 @@ button {
 .loginPage {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   place-items: stretch;
   background: var(--bg);
   padding: 0;
@@ -5409,8 +5469,13 @@ button {
     padding: 0 0 20px;
   }
 
-  .publicIssueDate {
-    margin-bottom: 8px;
+  .publicDatePicker {
+    min-height: 38px;
+    margin-bottom: 14px;
+  }
+
+  .publicDatePickerLabel {
+    font-size: 17px;
   }
 
   .publicDigestMasthead h1,
@@ -5493,7 +5558,7 @@ button {
     padding: 38px 0;
   }
 
-  .publicDigestEmpty > p:not(.publicIssueDate) {
+  .publicDigestEmpty > p {
     margin-top: 12px;
     font-size: 14px;
   }

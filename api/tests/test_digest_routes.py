@@ -46,3 +46,17 @@ async def test_digest_by_date_still_requires_authentication() -> None:
         response = await client.get("/api/v1/digests/2026-09-09")
 
     assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_public_digest_by_date_is_available_without_authentication() -> None:
+    app = create_app()
+    app.dependency_overrides[get_digest_query_service] = empty_digest_query_service
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/v1/digests/public/2026-09-09")
+
+    assert response.status_code == 200
+    assert response.json() == {"data": None}

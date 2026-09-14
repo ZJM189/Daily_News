@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import RadarMark from "../components/RadarMark";
+import { AppFooter } from "../components/AppFooter";
 import { login } from "../../lib/api";
 
 export default function LoginForm() {
@@ -84,6 +85,7 @@ export default function LoginForm() {
           </form>
         </section>
       </main>
+      <AppFooter />
     </div>
   );
 }

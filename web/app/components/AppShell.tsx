@@ -26,6 +26,7 @@ import type { LucideIcon } from "lucide-react";
 import { apiPost, getCurrentUser } from "../../lib/api";
 import type { User } from "../../lib/types";
 import RadarMark from "./RadarMark";
+import { AppFooter } from "./AppFooter";
 import { FavoritesProvider } from "./FavoritesProvider";
 import { LibraryChatWidget } from "./LibraryChatWidget";
 
@@ -263,6 +264,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {guardedChildren}
           {adminRoute ? null : <LibraryChatWidget />}
         </FavoritesProvider>
+        <AppFooter />
         {adminRoute ? null : <MobileBottomNav pathname={pathname} />}
       </div>
     </div>
@@ -365,6 +367,7 @@ function PublicShell({ children, pathname }: { children: React.ReactNode; pathna
         </div>
       </header>
       {children}
+      <AppFooter />
     </div>
   );
 }
