@@ -104,6 +104,12 @@ test("anonymous users can read public today digest without private widgets", asy
   await expect(page.getByRole("heading", { name: "上一期 AI 情报简报" })).toBeVisible();
   await expect(page.getByText("这是用户选择日期后加载的上一期公开 AI 简报。")).toBeVisible();
   await expect(datePicker).toHaveValue("2026-09-08");
+  await expect(page.getByText("浏览专题", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "模型公司", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "全部", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "开源项目", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "社区动态", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "多模态检索论文刷新长上下文评测" })).toBeVisible();
   const publicDigestNav = page.locator(".publicNav a");
   await expect(publicDigestNav).toHaveText("每日 AI 简报");
   await expect(publicDigestNav).toBeVisible();
@@ -138,6 +144,12 @@ test("anonymous users can read public today digest without private widgets", asy
   const firstSummary = firstItem.getByText("项目新增调用链和工具执行记录");
   await expect(firstTitle).toBeVisible();
   await expect(firstSummary).toBeVisible();
+  await expect(
+    page.locator(".publicRailStory").filter({ hasText: "多模态检索论文刷新长上下文评测" })
+  ).toHaveCount(1);
+  await expect(
+    page.locator(".publicDigestItem").filter({ hasText: "多模态检索论文刷新长上下文评测" })
+  ).toHaveCount(0);
 
   const index = page.getByRole("complementary", { name: "今日索引" });
   if (testInfo.project.name === "mobile") {

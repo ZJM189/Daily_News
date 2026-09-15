@@ -1,5 +1,13 @@
+"use client";
+
 import Link from "next/link";
-import { useRef, type MouseEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type MouseEvent
+} from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   CalendarDays,
   Clock3,
@@ -154,11 +162,87 @@ function PublicDigestView({
   maxDate?: string;
   onDigestDateChange?: (date: string) => void;
 }) {
+  const motionRoot = useRef<HTMLDivElement>(null);
   const activeDate = digest?.digest_date || selectedDate || todayInShanghai();
+  const filteredItems = digest?.items ?? [];
+
+  useLayoutEffect(() => {
+    if (!motionRoot.current) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const root = motionRoot.current;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const context = gsap.context(() => {
+      const progress = root.querySelector<HTMLElement>(".publicReadingProgress");
+
+      if (reducedMotion) {
+        gsap.set(".publicReveal, .publicScrollReveal, .publicTickerTrack", {
+          clearProps: "all"
+        });
+        if (progress) progress.style.transform = "scaleX(1)";
+        return;
+      }
+
+      gsap.fromTo(
+        ".publicReveal",
+        { autoAlpha: 0, y: 28 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.72,
+          ease: "power3.out",
+          stagger: 0.07,
+          clearProps: "transform"
+        }
+      );
+
+      gsap.utils.toArray<HTMLElement>(".publicScrollReveal").forEach((element) => {
+        gsap.fromTo(
+          element,
+          { autoAlpha: 0, y: 22 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.62,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: element,
+              start: "top 88%",
+              once: true
+            }
+          }
+        );
+      });
+
+      const tickerTrack = root.querySelector<HTMLElement>(".publicTickerTrack");
+      const tickerViewport = tickerTrack?.parentElement;
+      if (tickerTrack && tickerViewport && tickerTrack.scrollWidth > tickerViewport.clientWidth) {
+        gsap.to(tickerTrack, {
+          xPercent: -50,
+          duration: Math.max(22, filteredItems.length * 5),
+          ease: "none",
+          repeat: -1
+        });
+      }
+
+      if (progress) {
+        ScrollTrigger.create({
+          trigger: root,
+          start: "top top",
+          end: "bottom bottom",
+          onUpdate: (self) => {
+            progress.style.transform = `scaleX(${self.progress})`;
+          }
+        });
+      }
+    }, root);
+
+    return () => context.revert();
+  }, [activeDate, filteredItems.length]);
 
   if (!digest) {
     return (
-      <div className="publicDigestStack">
+      <div className="publicDigestStack" ref={motionRoot}>
         <section className="publicDigestEmpty">
           <PublicDigestDatePicker
             value={activeDate}
@@ -181,94 +265,95 @@ function PublicDigestView({
   const itemCount = digest.stats.item_count ?? digest.items.length;
   const sourceCount = digest.stats.source_count ?? 0;
   const title = publicDigestTitle(digest.title, digest.digest_date);
+  const leadItem = filteredItems[0] || null;
+  const railItems = filteredItems.slice(1, 3);
+  const remainingItems = filteredItems.slice(3);
 
   return (
-    <div className="publicDigestStack">
-      <section className="publicDigestMasthead" aria-labelledby="public-digest-title">
-        <PublicDigestDatePicker
-          value={digest.digest_date}
-          maxDate={maxDate}
-          onChange={onDigestDateChange}
-        />
-        <h1 id="public-digest-title">{title}</h1>
-        <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
-        <div className="publicDigestFacts" aria-label="本期简报概况">
-          <span><strong>{topicCount}</strong> 个专题</span>
-          <span><strong>{itemCount}</strong> 条内容</span>
-          <span><strong>{sourceCount}</strong> 个来源</span>
-          <span className="publicUpdatedAt">
-            <Clock3 size={14} aria-hidden="true" />
-            {generatedLabel ? `${generatedLabel} 更新` : "发布时间待定"}
+    <div className="publicDigestStack" ref={motionRoot}>
+      <div className="publicReadingProgress" aria-hidden="true" />
+
+      <section className="publicDigestMasthead publicReveal" aria-labelledby="public-digest-title">
+        <div className="publicMastheadTopline">
+          <PublicDigestDatePicker
+            value={digest.digest_date}
+            maxDate={maxDate}
+            onChange={onDigestDateChange}
+          />
+          <span className="publicLiveStatus">
+            <span className="publicLiveDot" aria-hidden="true" />
+            每日更新
           </span>
+        </div>
+        <div className="publicMastheadGrid">
+          <div className="publicMastheadTitle">
+            <h1 id="public-digest-title">{title}</h1>
+          </div>
+          <div className="publicMastheadCopy">
+            <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
+            <div className="publicDigestFacts" aria-label="本期简报概况">
+              <span><strong>{topicCount}</strong> 个专题</span>
+              <span><strong>{itemCount}</strong> 条内容</span>
+              <span><strong>{sourceCount}</strong> 个来源</span>
+              <span className="publicUpdatedAt">
+                <Clock3 size={14} aria-hidden="true" />
+                {generatedLabel ? `${generatedLabel} 更新` : "发布时间待定"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="publicTicker publicReveal" aria-label="热点速览">
+        <div className="publicTickerLabel">
+          <TrendingUp size={15} aria-hidden="true" />
+          热点速览
+        </div>
+        <div className="publicTickerViewport">
+          <div className="publicTickerTrack">
+            {[...filteredItems, ...filteredItems].map((item, index) => (
+              <a
+                className="publicTickerItem"
+                href={`#public-digest-item-${item.rank}`}
+                key={`${item.id}-${index}`}
+              >
+                <span>{String(item.rank).padStart(2, "0")}</span>
+                {item.title_snapshot}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="publicLeadGrid" aria-label="重点新闻">
+        {leadItem ? <PublicLeadStory item={leadItem} /> : <PublicFilteredEmpty />}
+        <div className="publicStoryRail">
+          {railItems.map((item) => (
+            <PublicRailStory item={item} key={item.id} />
+          ))}
         </div>
       </section>
 
       <section className="publicPortalLayout" id="public-digest-list">
-        <div className="publicNewsStream" aria-label="今日要闻">
-          <header className="publicStreamHeader">
-            <h2>今日要闻</h2>
-            <span>{digest.items.length} 条精选</span>
-          </header>
-
-          <div className="publicDigestList">
-            {digest.items.map((item, index) => {
-              const sourceUrl = originalUrl(item.source_snapshot);
-              const category = categoryLabels[item.category_snapshot] || item.category_snapshot;
-              const source = sourceLabel(item.source_snapshot) || category;
-              const itemSourceCount = numberValue(item.source_snapshot.source_count);
-              const itemId = `public-digest-item-${item.rank}`;
-
-              return (
-                <article
-                  className={`publicDigestItem ${index === 0 ? "publicDigestLead" : ""}`}
-                  id={itemId}
-                  key={item.id}
-                >
-                  <div className="publicItemMeta">
-                    <span className="publicItemRank">{String(item.rank).padStart(2, "0")}</span>
-                    <span className="publicItemSource">{source}</span>
-                    <span aria-hidden="true">/</span>
-                    <span>{category}</span>
-                    {itemSourceCount > 1 ? <span>{itemSourceCount} 个相关来源</span> : null}
-                  </div>
-                  <h2>
-                    {sourceUrl ? (
-                      <a href={sourceUrl} target="_blank" rel="noreferrer">
-                        {item.title_snapshot}
-                      </a>
-                    ) : item.title_snapshot}
-                  </h2>
-                  <p className="publicItemSummary">
-                    {item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}
-                  </p>
-                  {item.importance_snapshot_zh ? (
-                    <p className="publicItemImportance">
-                      <strong>影响</strong>
-                      {item.importance_snapshot_zh}
-                    </p>
-                  ) : null}
-                  <footer className="publicItemFooter">
-                    <span>{formatItemTimestamp(item.created_at)} 收录</span>
-                    {sourceUrl ? (
-                      <a href={sourceUrl} target="_blank" rel="noreferrer">
-                        查看原文
-                        <ExternalLink size={13} aria-hidden="true" />
-                      </a>
-                    ) : null}
-                  </footer>
-                </article>
-              );
-            })}
+        {remainingItems.length > 0 ? (
+          <div className="publicNewsStream" aria-label="今日要闻">
+            <div className="publicDigestList">
+              {remainingItems.map((item) => (
+                <PublicDigestItem item={item} key={item.id} />
+              ))}
+            </div>
           </div>
-        </div>
-
-        <aside className="publicDigestIndex" aria-label="今日索引">
+        ) : null}
+        <aside className="publicDigestIndex publicReveal" aria-label="今日索引">
           <header>
-            <h2>今日索引</h2>
+            <div>
+              <span className="publicSectionKicker">READING INDEX</span>
+              <h2>今日索引</h2>
+            </div>
             <span>第 {digest.version} 版</span>
           </header>
           <ol>
-            {digest.items.map((item) => (
+            {filteredItems.map((item) => (
               <li key={item.id}>
                 <a href={`#public-digest-item-${item.rank}`}>
                   <span>{String(item.rank).padStart(2, "0")}</span>
@@ -280,10 +365,128 @@ function PublicDigestView({
               </li>
             ))}
           </ol>
-          <p>{itemCount} 条内容，来自 {sourceCount} 个信息源</p>
+          <p>{filteredItems.length} 条内容，来自 {sourceCount} 个信息源</p>
         </aside>
       </section>
     </div>
+  );
+}
+
+function PublicLeadStory({ item }: { item: Digest["items"][number] }) {
+  const sourceUrl = originalUrl(item.source_snapshot);
+  const category = categoryLabels[item.category_snapshot] || item.category_snapshot;
+  const source = sourceLabel(item.source_snapshot) || category;
+
+  return (
+    <article className="publicLeadStory publicReveal" id={`public-digest-item-${item.rank}`}>
+      <div className="publicLeadStoryBackdrop" aria-hidden="true">
+        <span>{String(item.rank).padStart(2, "0")}</span>
+      </div>
+      <div className="publicLeadStoryContent">
+        <div className="publicItemMeta">
+          <span className="publicItemRank">{String(item.rank).padStart(2, "0")}</span>
+          <span className="publicItemSource">{source}</span>
+          <span aria-hidden="true">/</span>
+          <span>{category}</span>
+        </div>
+        <h2>
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noreferrer">
+              {item.title_snapshot}
+            </a>
+          ) : item.title_snapshot}
+        </h2>
+        <p>{item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}</p>
+        <div className="publicLeadStoryFooter">
+          <span>重点报道 · {formatItemTimestamp(item.created_at)} 收录</span>
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noreferrer">
+              阅读原文
+              <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function PublicRailStory({ item }: { item: Digest["items"][number] }) {
+  const sourceUrl = originalUrl(item.source_snapshot);
+  const category = categoryLabels[item.category_snapshot] || item.category_snapshot;
+
+  return (
+    <article className="publicRailStory publicReveal">
+      <div className="publicRailRank">{String(item.rank).padStart(2, "0")}</div>
+      <div>
+        <span className="publicRailCategory">{category}</span>
+        <h2>
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noreferrer">
+              {item.title_snapshot}
+            </a>
+          ) : item.title_snapshot}
+        </h2>
+        <p>{sourceLabel(item.source_snapshot) || category}</p>
+      </div>
+    </article>
+  );
+}
+
+function PublicFilteredEmpty() {
+  return (
+    <section className="publicFilteredEmpty">
+      <TrendingUp size={20} aria-hidden="true" />
+      <h2>这个专题暂时没有内容</h2>
+      <p>切换其他专题，继续浏览本期 AI 简报。</p>
+    </section>
+  );
+}
+
+function PublicDigestItem({ item }: { item: Digest["items"][number] }) {
+  const sourceUrl = originalUrl(item.source_snapshot);
+  const category = categoryLabels[item.category_snapshot] || item.category_snapshot;
+  const source = sourceLabel(item.source_snapshot) || category;
+  const itemSourceCount = numberValue(item.source_snapshot.source_count);
+
+  return (
+    <article
+      className="publicDigestItem publicScrollReveal"
+      id={`public-digest-item-${item.rank}`}
+    >
+      <div className="publicItemMeta">
+        <span className="publicItemRank">{String(item.rank).padStart(2, "0")}</span>
+        <span className="publicItemSource">{source}</span>
+        <span aria-hidden="true">/</span>
+        <span>{category}</span>
+        {itemSourceCount > 1 ? <span>{itemSourceCount} 个相关来源</span> : null}
+      </div>
+      <h2>
+        {sourceUrl ? (
+          <a href={sourceUrl} target="_blank" rel="noreferrer">
+            {item.title_snapshot}
+          </a>
+        ) : item.title_snapshot}
+      </h2>
+      <p className="publicItemSummary">
+        {item.summary_snapshot_zh || "该专题尚未生成中文摘要。"}
+      </p>
+      {item.importance_snapshot_zh ? (
+        <p className="publicItemImportance">
+          <strong>影响</strong>
+          {item.importance_snapshot_zh}
+        </p>
+      ) : null}
+      <footer className="publicItemFooter">
+        <span>{formatItemTimestamp(item.created_at)} 收录</span>
+        {sourceUrl ? (
+          <a href={sourceUrl} target="_blank" rel="noreferrer">
+            查看原文
+            <ExternalLink size={13} aria-hidden="true" />
+          </a>
+        ) : null}
+      </footer>
+    </article>
   );
 }
 
