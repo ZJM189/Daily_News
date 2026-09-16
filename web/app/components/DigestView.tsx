@@ -100,7 +100,6 @@ export function DigestView({
   return (
     <div className="pageStack digestStack">
       <PageHeader
-        eyebrow={`Version ${digest.version}`}
         title="AI News"
         titleNode={<AsciiNewsTitle compact />}
         description={digest.overview_zh || "本期暂无概览。"}

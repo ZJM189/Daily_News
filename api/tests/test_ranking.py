@@ -68,3 +68,31 @@ def test_score_item_uses_standardized_tags_for_keyword_hits() -> None:
     _score, breakdown = score_item(item, now=now)
 
     assert breakdown["keyword_hits"] == ["rag"]
+
+
+def test_score_item_recognizes_current_ai_terms_and_chinese_keywords() -> None:
+    now = datetime(2026, 9, 2, 8, 0, tzinfo=UTC)
+    item = ItemForRankingDTO(
+        id=uuid4(),
+        source_id=uuid4(),
+        source_type="rss",
+        source_weight=10,
+        title="A2A MCP coding agent 支持多模态推理模型和本地部署",
+        summary_original="Context engineering for open weights, Terminal-Bench, and video generation.",
+        content_snippet="Deep research workflow with vector database reranker.",
+        tags=["AI编程", "智能体"],
+        published_at=now,
+        collected_at=now,
+    )
+
+    _score, breakdown = score_item(item, now=now)
+
+    assert "a2a" in breakdown["keyword_hits"]
+    assert "mcp" in breakdown["keyword_hits"]
+    assert "coding agent" in breakdown["keyword_hits"]
+    assert "deep research" in breakdown["keyword_hits"]
+    assert "terminal-bench" in breakdown["keyword_hits"]
+    assert "vector database" in breakdown["keyword_hits"]
+    assert "ai编程" in breakdown["keyword_hits"]
+    assert "多模态" in breakdown["keyword_hits"]
+    assert "推理模型" in breakdown["keyword_hits"]

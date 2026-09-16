@@ -1,6 +1,8 @@
 import hashlib
 import json
+import random
 import time
+from email.utils import parsedate_to_datetime
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +16,9 @@ from app.application.ingestion.dtos import (
     TopicAggregationGroupDTO,
 )
 from app.application.ingestion.summarization import SummarySchemaError, validate_item_summary
+
+RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
+MAX_RETRY_DELAY_SECONDS = 30.0
 
 
 class OpenAICompatibleSummarizationClient:
@@ -29,14 +34,11 @@ class OpenAICompatibleSummarizationClient:
         if provider.api_key:
             headers["Authorization"] = f"Bearer {provider.api_key}"
 
-        with httpx.Client(timeout=provider.timeout_seconds) as client:
-            response = client.post(
-                f"{provider.base_url.rstrip('/')}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-            response.raise_for_status()
-            response_payload = response.json()
+        response_payload = _post_chat_completion(
+            provider=provider,
+            headers=headers,
+            payload=payload,
+        )
 
         content = _extract_message_content(response_payload)
         summary_payload = _parse_summary_json(content)
@@ -71,14 +73,11 @@ class OpenAICompatibleTopicAggregationClient:
         if provider.api_key:
             headers["Authorization"] = f"Bearer {provider.api_key}"
 
-        with httpx.Client(timeout=provider.timeout_seconds) as client:
-            response = client.post(
-                f"{provider.base_url.rstrip('/')}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-            response.raise_for_status()
-            response_payload = response.json()
+        response_payload = _post_chat_completion(
+            provider=provider,
+            headers=headers,
+            payload=payload,
+        )
 
         content = _extract_message_content(response_payload)
         aggregation_payload = _parse_summary_json(content)
@@ -98,18 +97,93 @@ class OpenAICompatibleTopicAggregationClient:
         if provider.api_key:
             headers["Authorization"] = f"Bearer {provider.api_key}"
 
-        with httpx.Client(timeout=provider.timeout_seconds) as client:
-            response = client.post(
-                f"{provider.base_url.rstrip('/')}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-            response.raise_for_status()
-            response_payload = response.json()
+        response_payload = _post_chat_completion(
+            provider=provider,
+            headers=headers,
+            payload=payload,
+        )
 
         content = _extract_message_content(response_payload)
         consolidation_payload = _parse_summary_json(content)
         return parse_topic_consolidation_payload(consolidation_payload, groups=groups)
+
+
+def _post_chat_completion(
+    *,
+    provider: LLMRuntimeProviderDTO,
+    headers: dict[str, str],
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    attempts = max(provider.retry_count, 0) + 1
+    last_exc: Exception | None = None
+    with httpx.Client(timeout=provider.timeout_seconds) as client:
+        for attempt in range(attempts):
+            try:
+                response = client.post(
+                    f"{provider.base_url.rstrip('/')}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                )
+                if response.status_code not in RETRYABLE_STATUS_CODES:
+                    response.raise_for_status()
+                    return response.json()
+                last_exc = httpx.HTTPStatusError(
+                    f"retryable status code: {response.status_code}",
+                    request=response.request,
+                    response=response,
+                )
+                if attempt >= attempts - 1:
+                    response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                if not _is_retryable_http_error(exc) or attempt >= attempts - 1:
+                    raise
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                last_exc = exc
+                if attempt >= attempts - 1:
+                    raise
+
+            _sleep_before_retry(attempt=attempt, response=_response_from_exception(last_exc))
+
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("chat completion request failed without response")
+
+
+def _is_retryable_http_error(exc: httpx.HTTPStatusError) -> bool:
+    return exc.response.status_code in RETRYABLE_STATUS_CODES
+
+
+def _response_from_exception(exc: Exception | None) -> httpx.Response | None:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response
+    return None
+
+
+def _sleep_before_retry(*, attempt: int, response: httpx.Response | None) -> None:
+    delay = _retry_after_delay(response) if response is not None else None
+    if delay is None:
+        delay = min((2**attempt) + random.uniform(0, 1), MAX_RETRY_DELAY_SECONDS)
+    time.sleep(delay)
+
+
+def _retry_after_delay(response: httpx.Response) -> float | None:
+    retry_after = response.headers.get("Retry-After")
+    if not retry_after:
+        return None
+    try:
+        return min(max(float(retry_after), 0.0), MAX_RETRY_DELAY_SECONDS)
+    except ValueError:
+        pass
+
+    try:
+        retry_at = parsedate_to_datetime(retry_after)
+    except (TypeError, ValueError):
+        return None
+    if retry_at.tzinfo is None:
+        return None
+    delay = retry_at.timestamp() - time.time()
+    return min(max(delay, 0.0), MAX_RETRY_DELAY_SECONDS)
 
 
 def _build_chat_completion_payload(
