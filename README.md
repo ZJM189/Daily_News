@@ -1,6 +1,7 @@
 # Daily News
 
 [简体中文](README.md) | [English](README.en.md)
+> 🚀 **在线体验**：<http://zjm.abrdns.com:8181/>
 
 [![CI](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ZJM189/Daily_News/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat&logo=python&logoColor=white)](api/pyproject.toml)
