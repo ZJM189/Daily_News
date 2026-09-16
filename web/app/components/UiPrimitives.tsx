@@ -8,6 +8,7 @@ type PageScaffoldProps = {
 type PageHeaderProps = {
   eyebrow?: string;
   title: string;
+  titleNode?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   aside?: ReactNode;
@@ -44,6 +45,7 @@ export function PageScaffold({ children, className }: PageScaffoldProps) {
 export function PageHeader({
   eyebrow,
   title,
+  titleNode,
   description,
   actions,
   aside,
@@ -53,7 +55,9 @@ export function PageHeader({
     <section className={cx("pageHeader appPageHeader", className)}>
       <div className="pageTitleBlock">
         {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-        <h1>{title}</h1>
+        <h1 className={titleNode ? "asciiNewsHeading" : undefined} aria-label={titleNode ? title : undefined}>
+          {titleNode || title}
+        </h1>
         {description ? <p className="description">{description}</p> : null}
       </div>
       {aside ? <div className="pageHeaderAside">{aside}</div> : null}

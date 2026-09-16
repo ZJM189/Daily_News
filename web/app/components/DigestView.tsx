@@ -19,6 +19,14 @@ import {
 import type { Digest } from "../../lib/types";
 import { MetricCard, PageHeader, SurfaceCard } from "./UiPrimitives";
 
+const asciiNewsTitle = [
+  "     ___    ____   _   __",
+  "    /   |  /  _/  / | / /__ _      _______",
+  "   / /| |  / /   /  |/ / _ \\ | /| / / ___/",
+  "  / ___ |_/ /   / /|  /  __/ |/ |/ (__  )",
+  " /_/  |_/___/  /_/ |_/\\___/|__/|__/____/"
+].join("\n");
+
 const categoryLabels: Record<string, string> = {
   model_company: "模型公司",
   open_source: "开源项目",
@@ -93,7 +101,8 @@ export function DigestView({
     <div className="pageStack digestStack">
       <PageHeader
         eyebrow={`Version ${digest.version}`}
-        title={digest.title}
+        title="AI News"
+        titleNode={<AsciiNewsTitle compact />}
         description={digest.overview_zh || "本期暂无概览。"}
         aside={
           <div className="metricStrip compactStats">
@@ -264,7 +273,6 @@ function PublicDigestView({
   const topicCount = digest.stats.topic_count ?? digest.items.length;
   const itemCount = digest.stats.item_count ?? digest.items.length;
   const sourceCount = digest.stats.source_count ?? 0;
-  const title = publicDigestTitle(digest.title, digest.digest_date);
   const leadItem = filteredItems[0] || null;
   const railItems = filteredItems.slice(1, 3);
   const remainingItems = filteredItems.slice(3);
@@ -287,7 +295,9 @@ function PublicDigestView({
         </div>
         <div className="publicMastheadGrid">
           <div className="publicMastheadTitle">
-            <h1 id="public-digest-title">{title}</h1>
+            <h1 className="asciiNewsHeading" id="public-digest-title" aria-label="AI News">
+              <AsciiNewsTitle />
+            </h1>
           </div>
           <div className="publicMastheadCopy">
             <p className="publicDigestOverview">{digest.overview_zh || "本期暂无概览。"}</p>
@@ -560,20 +570,12 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function publicDigestTitle(title: string, digestDate: string) {
-  const escapedDate = digestDate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const compactDate = digestDate.replaceAll("-", "");
-  const date = new Date(`${digestDate}T00:00:00+08:00`);
-  const zhDate = Number.isNaN(date.getTime())
-    ? null
-    : `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-  const patterns = [
-    new RegExp(`^${escapedDate}\\s*[-—–·|:：]?\\s*`),
-    new RegExp(`^${compactDate}\\s*[-—–·|:：]?\\s*`),
-    ...(zhDate ? [new RegExp(`^${zhDate}\\s*(?:周.|星期.)?\\s*[-—–·|:：]?\\s*`)] : [])
-  ];
-  const cleaned = patterns.reduce((value, pattern) => value.replace(pattern, ""), title).trim();
-  return cleaned || title;
+function AsciiNewsTitle({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className={`asciiNewsTitle ${compact ? "compact" : ""}`} aria-hidden="true">
+      {asciiNewsTitle}
+    </span>
+  );
 }
 
 function formatDigestDate(value: string) {
