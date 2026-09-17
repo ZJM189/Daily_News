@@ -1,3 +1,4 @@
+from typing import Self
 from uuid import uuid4
 
 import httpx
@@ -14,7 +15,7 @@ def test_post_chat_completion_retries_rate_limit(monkeypatch) -> None:
         def __init__(self, *, timeout: int) -> None:
             assert timeout == 30
 
-        def __enter__(self) -> "FakeClient":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -70,7 +71,7 @@ def test_post_chat_completion_uses_backoff_jitter_without_retry_after(monkeypatc
         def __init__(self, *, timeout: int) -> None:
             assert timeout == 30
 
-        def __enter__(self) -> "FakeClient":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *args: object) -> None:
