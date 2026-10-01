@@ -194,6 +194,25 @@ class User(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class VisitEvent(Base):
+    __tablename__ = "visit_events"
+    __table_args__ = (
+        Index("idx_visit_events_created_at", "created_at"),
+        Index("idx_visit_events_visitor_created_at", "visitor_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    visitor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False)
+    referrer: Mapped[str | None] = mapped_column(Text)
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class FavoriteFolder(Base, TimestampMixin):
     __tablename__ = "favorite_folders"
     __table_args__ = (

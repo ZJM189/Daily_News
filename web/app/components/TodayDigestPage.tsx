@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser, getPublicDigestByDate, getTodayDigest } from "../../lib/api";
+import {
+  getCurrentUser,
+  getPublicDigestByDate,
+  getTodayDigest,
+} from "../../lib/api";
 import type { Digest } from "../../lib/types";
 import { DigestView } from "./DigestView";
 import { Notice, PageScaffold } from "./UiPrimitives";

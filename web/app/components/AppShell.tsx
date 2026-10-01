@@ -23,8 +23,8 @@ import {
   Users
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { apiPost, getCurrentUser } from "../../lib/api";
-import type { User } from "../../lib/types";
+import { apiPost, getCurrentUser, recordVisit } from "../../lib/api";
+import type { User, VisitStats } from "../../lib/types";
 import RadarMark from "./RadarMark";
 import { AppFooter } from "./AppFooter";
 import { FavoritesProvider } from "./FavoritesProvider";
@@ -63,10 +63,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const publicRoute = isPublicRoute(pathname);
   const loginRoute = pathname === "/login";
   const adminRoute = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    void recordVisit(pathname)
+      .then((stats) => {
+        setVisitStats(stats);
+      })
+      .catch(() => undefined);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -160,7 +169,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <PublicShell pathname={pathname}>{children}</PublicShell>;
+    return <PublicShell pathname={pathname} visitStats={visitStats}>{children}</PublicShell>;
   }
 
   const guardedChildren = adminRoute && user.role !== "admin" ? <AccessDenied /> : children;
@@ -264,7 +273,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {guardedChildren}
           {adminRoute ? null : <LibraryChatWidget />}
         </FavoritesProvider>
-        <AppFooter />
+        <AppFooter visitStats={visitStats} />
         {adminRoute ? null : <MobileBottomNav pathname={pathname} />}
       </div>
     </div>
@@ -366,7 +375,15 @@ function GitHubMark({ className }: { className?: string }) {
   );
 }
 
-function PublicShell({ children, pathname }: { children: React.ReactNode; pathname: string }) {
+function PublicShell({
+  children,
+  pathname,
+  visitStats
+}: {
+  children: React.ReactNode;
+  pathname: string;
+  visitStats: VisitStats | null;
+}) {
   const nextPath = pathname === "/" ? "/today" : pathname;
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
 
@@ -400,7 +417,7 @@ function PublicShell({ children, pathname }: { children: React.ReactNode; pathna
         </div>
       </header>
       {children}
-      <AppFooter />
+      <AppFooter visitStats={visitStats} />
     </div>
   );
 }

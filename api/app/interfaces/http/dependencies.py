@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.application.analytics.service import VisitAnalyticsService
 from app.application.content_library.chat import ContentLibraryChatService
 from app.application.content_library.service import ContentLibraryService
 from app.application.digest_publishing.service import DigestQueryService
@@ -14,6 +15,7 @@ from app.application.job_operations.service import JobOperationsService
 from app.application.llm_operations.service import LLMProviderService
 from app.application.personalization.service import PersonalizationService
 from app.application.source_management.service import SourceManagementService
+from app.infrastructure.analytics.factory import create_visit_analytics_service
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.content_library.factory import (
     create_content_library_chat_service,
@@ -104,6 +106,12 @@ async def get_personalization_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> PersonalizationService:
     return create_personalization_service(session)
+
+
+async def get_visit_analytics_service(
+    session: Annotated[Session, Depends(get_db_session)],
+) -> VisitAnalyticsService:
+    return create_visit_analytics_service(session)
 
 
 async def get_session_token(

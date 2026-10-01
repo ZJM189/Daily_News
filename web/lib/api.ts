@@ -16,7 +16,8 @@ import type {
   Source,
   SourceCredential,
   User,
-  UserPreference
+  UserPreference,
+  VisitStats
 } from "./types";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -100,6 +101,41 @@ export function getTodayDigest(): Promise<Digest | null> {
 
 export function getPublicDigestByDate(date: string): Promise<Digest | null> {
   return apiGet<Digest | null>(`/api/v1/digests/public/${date}`);
+}
+
+export function getVisitStats(): Promise<VisitStats> {
+  return apiGet<VisitStats>("/api/v1/analytics/visits");
+}
+
+export function recordVisit(path: string): Promise<VisitStats> {
+  const visitorId = getOrCreateVisitorId();
+  return apiPost<VisitStats>("/api/v1/analytics/visits", {
+    visitor_id: visitorId,
+    path
+  });
+}
+
+function getOrCreateVisitorId(): string {
+  const storageKey = "daily-news-visitor-id";
+  try {
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) return existing;
+
+    const visitorId = createVisitorId();
+    window.localStorage.setItem(storageKey, visitorId);
+    return visitorId;
+  } catch {
+    return createVisitorId();
+  }
+}
+
+function createVisitorId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    const nibble = char === "x" ? value : (value & 0x3) | 0x8;
+    return nibble.toString(16);
+  });
 }
 
 export function getDigestByDate(date: string): Promise<Digest | null> {

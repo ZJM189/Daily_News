@@ -24,6 +24,7 @@ def test_initial_schema_tables_are_registered() -> None:
         "llm_call_logs",
         "job_runs",
         "scheduler_configs",
+        "visit_events",
     }
 
     assert expected_tables.issubset(Base.metadata.tables.keys())

@@ -8,6 +8,7 @@ from app.interfaces.http.admin.source_credentials import (
 )
 from app.interfaces.http.admin.sources import router as admin_sources_router
 from app.interfaces.http.admin.users import router as admin_users_router
+from app.interfaces.http.analytics import router as analytics_router
 from app.interfaces.http.auth import router as auth_router
 from app.interfaces.http.digests import router as digests_router
 from app.interfaces.http.favorites import router as favorites_router
@@ -19,6 +20,7 @@ from app.interfaces.http.library_chat import router as library_chat_router
 
 def register_routes(app: FastAPI) -> None:
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(analytics_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(digests_router, prefix="/api/v1")
     app.include_router(following_router, prefix="/api/v1")

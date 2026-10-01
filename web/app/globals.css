@@ -551,6 +551,43 @@ select:focus {
   text-align: center;
 }
 
+.appFooterStats {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-left: 18px;
+  color: var(--muted);
+}
+
+.appFooterStats span + span::before {
+  margin-right: 14px;
+  color: var(--line-strong);
+  content: "/";
+}
+
+.appFooterStats strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .workspaceFrame .appFooter {
+    padding: 16px 16px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .appFooterStats {
+    justify-content: center;
+    gap: 6px 10px;
+    margin: 8px 0 0;
+  }
+
+  .appFooterStats span + span::before {
+    margin-right: 10px;
+  }
+}
+
 .naturalSearchTrigger {
   position: fixed;
   right: 28px;

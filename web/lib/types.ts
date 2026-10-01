@@ -15,6 +15,13 @@ export type ApiEnvelope<T> = {
   meta?: Record<string, number>;
 };
 
+export type VisitStats = {
+  total_visits: number;
+  today_visits: number;
+  unique_visitors: number;
+  today_unique_visitors: number;
+};
+
 export type PageMeta = {
   page: number;
   page_size: number;
