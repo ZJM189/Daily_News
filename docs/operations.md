@@ -148,3 +148,11 @@ docker compose exec api alembic upgrade head
 - 检查 `/admin/llm` 是否有默认 Provider。
 - 检查 LLM API Key、Base URL、Model 是否正确。
 - 查看摘要任务日志。
+
+Jev 决策模型异常：
+
+- 检查 `.env` 中 `JEV_ENABLED`、`JEV_API_KEY` 和 `JEV_MODEL`。
+- 检查 Worker 容器是否能访问 TypeSafe API。
+- 查看 Worker 日志中的 `TypeSafe request failed`。
+- Jev 失败时排名会自动回退规则分，信息库意图分类会回退现有 OpenAI-compatible 分类器。
+- 不要把 API Key 放到命令行参数、前端环境变量或日志中。

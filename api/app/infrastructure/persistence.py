@@ -13,7 +13,14 @@ class Base(DeclarativeBase):
 
 
 def create_db_engine(settings: Settings) -> Engine:
-    return create_engine(settings.database_url, pool_pre_ping=True)
+    return create_engine(
+        settings.database_url,
+        pool_pre_ping=True,
+        connect_args={
+            "connect_timeout": 10,
+            "options": "-c statement_timeout=120000 -c lock_timeout=10000",
+        },
+    )
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[SQLAlchemySession]:

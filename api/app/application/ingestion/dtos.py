@@ -75,6 +75,7 @@ class ItemForRankingDTO:
     tags: list[str]
     published_at: datetime | None
     collected_at: datetime
+    category: str = "other"
 
 
 @dataclass(frozen=True, slots=True)

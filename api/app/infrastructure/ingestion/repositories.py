@@ -312,16 +312,20 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         item_id: UUID,
         score: float,
         score_breakdown: dict[str, object],
+        category: str | None = None,
     ) -> None:
+        values: dict[str, object] = {
+            "score": score,
+            "score_breakdown": score_breakdown,
+            "status": ItemStatus.RANKED,
+            "updated_at": func.now(),
+        }
+        if category in {item.value for item in CategoryCode}:
+            values["category"] = CategoryCode(category)
         self._session.execute(
             update(Item)
             .where(Item.id == item_id)
-            .values(
-                score=score,
-                score_breakdown=score_breakdown,
-                status=ItemStatus.RANKED,
-                updated_at=func.now(),
-            )
+            .values(**values)
         )
         self._session.flush()
 
@@ -623,6 +627,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
             tags=list(item.tags or []),
             published_at=item.published_at,
             collected_at=item.collected_at,
+            category=str(item.category.value if hasattr(item.category, "value") else item.category),
         )
 
     def _item_for_topic_aggregation_to_dto(self, item: Item) -> ItemForTopicAggregationDTO:

@@ -21,6 +21,7 @@ Daily News 是一个面向 AI 热点信息的多用户 Web 看板，用于自动
 - 多来源采集：RSS、Hacker News、GitHub、arXiv、Product Hunt、Hugging Face。
 - AI 内容处理：标准化、热度评分、专题聚合、中文摘要、来源规则分类、每日简报生成。
 - 多厂商 LLM：支持 OpenAI-compatible 接口，可配置 OpenAI、DeepSeek、通义千问等兼容服务。
+- 结构化决策模型：可选接入 TypeSafe Jev，用于意图分类、AI 相关性、质量、重要性和提示词注入判断。
 - 多用户账号：不开放公开注册，只允许管理员创建用户、禁用用户和重置密码。
 - 个性化关注：关注关键词软加权，排除关键词硬过滤，支持分类、来源类型、屏蔽来源和保存搜索。
 - 私有收藏：信息库、条目详情和关注流支持收藏，提供单层目录、移动、检索分页及删除目录后移回根目录。
@@ -106,6 +107,23 @@ API Key：你的 API Key
 ```
 
 当前摘要任务会使用“启用且默认”的 Provider。
+
+### Jev 决策模型
+
+Jev 不替代摘要模型，而是作为后端决策层使用。配置项位于部署服务器的 `.env`：
+
+```dotenv
+JEV_ENABLED=true
+JEV_API_KEY=你的 TypeSafe API Key
+JEV_MODEL=jev-1.13.0
+JEV_SCORE_WEIGHT=0.3
+JEV_ITEM_LIMIT=200
+JEV_INTENT_ENABLED=true
+JEV_ITEM_DECISION_ENABLED=true
+```
+
+详细架构、降级规则和测试方式见
+[Jev 集成说明](docs/design/jev-integration.md)。
 
 ## 主要页面
 

@@ -114,6 +114,7 @@ class IngestionRepository(Protocol):
         item_id: UUID,
         score: float,
         score_breakdown: dict[str, object],
+        category: str | None = None,
     ) -> None:
         raise NotImplementedError
 

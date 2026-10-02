@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     default_timezone: str = "Asia/Shanghai"
     digest_cron: str = "0 8 * * *"
     worker_poll_interval_seconds: int = 5
+    jev_enabled: bool = False
+    jev_api_key: str = ""
+    jev_base_url: str = "https://api.typesafe.ai"
+    jev_model: str = "jev-1.13.0"
+    jev_timeout_seconds: int = 30
+    jev_retry_count: int = 3
+    jev_score_weight: float = 0.3
+    jev_item_limit: int = 200
+    jev_intent_enabled: bool = True
+    jev_item_decision_enabled: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

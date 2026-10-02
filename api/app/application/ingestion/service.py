@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from app.application.decision.dtos import ItemDecisionEvaluationDTO
+from app.application.decision.item import ItemDecisionService
+from app.application.decision.scoring import compose_item_score
 from app.application.ingestion.collectors import CollectorRegistry
 from app.application.ingestion.dtos import (
     CollectExecutionResult,
@@ -191,8 +194,17 @@ class NormalizeJobExecutor:
 
 
 class RankJobExecutor:
-    def __init__(self, repository: IngestionRepository) -> None:
+    def __init__(
+        self,
+        repository: IngestionRepository,
+        decision_service: ItemDecisionService | None = None,
+        jev_score_weight: float = 0.3,
+        jev_item_limit: int = 200,
+    ) -> None:
         self._repository = repository
+        self._decision_service = decision_service
+        self._jev_score_weight = jev_score_weight
+        self._jev_item_limit = max(0, jev_item_limit)
 
     def run_next_rank_job(self) -> RankExecutionResult | None:
         job_run_id = self._repository.claim_next_rank_job()
@@ -209,17 +221,42 @@ class RankJobExecutor:
         limit = _positive_int(params.get("limit"), default=500, maximum=5000)
         now = datetime.now(UTC)
         items = self._repository.list_items_for_ranking(source_id=source_id, limit=limit)
+        rule_results = {item.id: score_item(item, now=now) for item in items}
+        jev_item_ids = {
+            item.id
+            for item in sorted(
+                items,
+                key=lambda candidate: (
+                    -rule_results[candidate.id][0],
+                    str(candidate.id),
+                ),
+            )[: self._jev_item_limit]
+        }
 
         success_count = 0
         failure_count = 0
         errors: list[str] = []
         for item in items:
             try:
-                score, breakdown = score_item(item, now=now)
+                rule_score, rule_breakdown = rule_results[item.id]
+                evaluation = (
+                    self._decision_service.evaluate(item)
+                    if self._decision_service is not None and item.id in jev_item_ids
+                    else ItemDecisionEvaluationDTO(decision=None, status="disabled")
+                )
+                score, breakdown = compose_item_score(
+                    rule_score=rule_score,
+                    rule_breakdown=rule_breakdown,
+                    evaluation=evaluation,
+                    jev_weight=self._jev_score_weight,
+                )
                 self._repository.mark_item_ranked(
                     item_id=item.id,
                     score=score,
                     score_breakdown=breakdown,
+                    category=(
+                        evaluation.decision.category if evaluation.decision is not None else None
+                    ),
                 )
                 success_count += 1
             # Item isolation: one malformed item must not stop the whole rank job.
@@ -585,10 +622,7 @@ def score_item(item: ItemForRankingDTO, *, now: datetime) -> tuple[float, dict[s
     score = round(
         min(
             100,
-            source_component
-            + recency_component
-            + keyword_component
-            + completeness_component,
+            source_component + recency_component + keyword_component + completeness_component,
         ),
         2,
     )
