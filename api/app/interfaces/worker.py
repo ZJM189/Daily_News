@@ -12,7 +12,6 @@ from app.infrastructure.ingestion.factory import (
 )
 from app.infrastructure.persistence import get_session_factory
 
-
 logger = logging.getLogger("daily_news.worker")
 
 
