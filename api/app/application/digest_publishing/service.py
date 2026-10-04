@@ -34,6 +34,23 @@ class GenerateDigestJobExecutor:
             maximum=30,
         )
         start_at, end_at = digest_window(digest_date, timezone)
+        if self._repository.has_failed_summarize_job(start_at=start_at, end_at=end_at):
+            message = "summarize job failed; digest publication skipped"
+            self._repository.mark_job_finished(
+                job_run_id=job_run_id,
+                status="failed",
+                total_count=0,
+                success_count=0,
+                failure_count=1,
+                error_message=message,
+                ended_at=datetime.now(UTC),
+            )
+            return GenerateDigestExecutionResult(
+                job_run_id=job_run_id,
+                total_count=0,
+                success_count=0,
+                failure_count=1,
+            )
         candidates = self._repository.list_digest_topic_candidates(
             digest_date=digest_date,
             start_at=start_at,

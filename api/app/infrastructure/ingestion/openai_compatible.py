@@ -18,7 +18,7 @@ from app.application.ingestion.dtos import (
 from app.application.ingestion.summarization import SummarySchemaError, validate_item_summary
 
 RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
-MAX_RETRY_DELAY_SECONDS = 30.0
+MAX_RETRY_DELAY_SECONDS = 60.0
 
 
 class OpenAICompatibleSummarizationClient:

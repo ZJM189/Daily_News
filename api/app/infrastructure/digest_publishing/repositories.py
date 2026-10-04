@@ -77,6 +77,20 @@ class SqlAlchemyDigestPublishingRepository(DigestPublishingRepository):
         params = self._session.scalar(select(JobRun.params).where(JobRun.id == job_run_id))
         return params if isinstance(params, dict) else {}
 
+    def has_failed_summarize_job(self, *, start_at: datetime, end_at: datetime) -> bool:
+        return bool(
+            self._session.scalar(
+                select(JobRun.id)
+                .where(
+                    JobRun.job_type == JobType.SUMMARIZE,
+                    JobRun.status == JobStatus.FAILED,
+                    JobRun.created_at >= start_at,
+                    JobRun.created_at < end_at,
+                )
+                .limit(1)
+            )
+        )
+
     def list_digest_topic_candidates(
         self,
         *,

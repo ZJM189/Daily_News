@@ -163,6 +163,9 @@ class _FakeDigestRepository:
         self.candidates = candidates
         self.list_args: dict[str, object] = {}
 
+    def has_failed_summarize_job(self, *, start_at, end_at) -> bool:
+        return False
+
     def mark_job_running(self, job_run_id, started_at: datetime) -> None:
         pass
 

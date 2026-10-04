@@ -32,6 +32,9 @@ class DigestPublishingRepository(Protocol):
     def get_job_params(self, job_run_id: UUID) -> dict[str, object]:
         raise NotImplementedError
 
+    def has_failed_summarize_job(self, *, start_at: datetime, end_at: datetime) -> bool:
+        raise NotImplementedError
+
     def list_digest_topic_candidates(
         self,
         *,
