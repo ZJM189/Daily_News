@@ -22,6 +22,51 @@ MAX_RETRY_DELAY_SECONDS = 60.0
 
 
 class OpenAICompatibleSummarizationClient:
+    def summarize_items(
+        self,
+        *,
+        provider: LLMRuntimeProviderDTO,
+        items: list[ItemForSummarizationDTO],
+    ) -> dict[UUID, ItemSummaryDTO]:
+        if not items:
+            return {}
+        started_at = time.perf_counter()
+        payload = _build_batch_summary_payload(provider=provider, items=items)
+        headers = {"Content-Type": "application/json"}
+        if provider.api_key:
+            headers["Authorization"] = f"Bearer {provider.api_key}"
+        response_payload = _post_chat_completion(provider=provider, headers=headers, payload=payload)
+        raw = _parse_summary_json(_extract_message_content(response_payload))
+        summaries = raw.get("summaries")
+        if not isinstance(summaries, list):
+            raise SummarySchemaError("batch response missing summaries")
+        by_id: dict[UUID, ItemSummaryDTO] = {}
+        usage = response_payload.get("usage")
+        input_tokens = usage.get("prompt_tokens") if isinstance(usage, dict) else None
+        output_tokens = usage.get("completion_tokens") if isinstance(usage, dict) else None
+        latency_ms = round((time.perf_counter() - started_at) * 1000)
+        expected = {item.id for item in items}
+        for entry in summaries:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                item_id = UUID(str(entry.get("item_id")))
+            except (ValueError, TypeError):
+                continue
+            if item_id not in expected:
+                continue
+            summary = validate_item_summary(entry)
+            by_id[item_id] = ItemSummaryDTO(
+                summary_zh=summary.summary_zh, importance_zh=summary.importance_zh,
+                category=summary.category, tags=summary.tags, confidence=summary.confidence,
+                input_tokens=input_tokens if isinstance(input_tokens, int) else None,
+                output_tokens=output_tokens if isinstance(output_tokens, int) else None,
+                latency_ms=latency_ms,
+            )
+        if len(by_id) != len(items):
+            raise SummarySchemaError("batch response missing item summaries")
+        return by_id
+
     def summarize_item(
         self,
         *,
@@ -220,6 +265,30 @@ def _build_chat_completion_payload(
                     f"{source_text}"
                 ),
             },
+        ],
+    }
+
+
+def _build_batch_summary_payload(
+    *, provider: LLMRuntimeProviderDTO, items: list[ItemForSummarizationDTO]
+) -> dict[str, Any]:
+    item_payload = [
+        {"item_id": str(item.id), "title": item.title[:240], "url": item.url[:300],
+         "summary_original": _clip(item.summary_original, 500),
+         "content_snippet": _clip(item.content_snippet, 700)}
+        for item in items
+    ]
+    return {
+        "model": provider.model, "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": "你是 AI 热点摘要助手。严格输出 JSON。"},
+            {"role": "user", "content": (
+                "为每个输入条目生成简体中文摘要。必须为每个 item_id 返回一项，JSON 格式："
+                '{"summaries":[{"item_id":"原始ID","summary_zh":"摘要",'
+                '"importance_zh":"重要性","tags":["标签"],"confidence":0.0}]}。\n\n'
+                f"items={json.dumps(item_payload, ensure_ascii=False)}"
+            )},
         ],
     }
 

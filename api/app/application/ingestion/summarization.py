@@ -11,6 +11,14 @@ from app.application.ingestion.repositories import IngestionRepository
 
 
 class ItemSummarizationClient(Protocol):
+    def summarize_items(
+        self,
+        *,
+        provider: LLMRuntimeProviderDTO,
+        items: list[ItemForSummarizationDTO],
+    ) -> dict[UUID, ItemSummaryDTO]:
+        raise NotImplementedError
+
     def summarize_item(
         self,
         *,
@@ -68,56 +76,48 @@ class SummarizeJobExecutor:
         success_count = 0
         failure_count = 0
         errors: list[str] = []
-        for item in items:
+        batch_size = _positive_int(params.get("batch_size"), default=10, maximum=25)
+        batches = [items[index : index + batch_size] for index in range(0, len(items), batch_size)]
+        for batch in batches:
             try:
-                summary = self._client.summarize_item(provider=provider, item=item)
-                self._repository.mark_item_summarized(
-                    item_id=item.id,
-                    provider=provider,
-                    summary=summary,
-                    prompt_version=ITEM_SUMMARY_PROMPT_VERSION,
-                )
-                self._repository.log_llm_call(
-                    provider=provider,
-                    object_type="item",
-                    object_id=item.id,
-                    status="success",
-                    input_tokens=summary.input_tokens,
-                    output_tokens=summary.output_tokens,
-                    latency_ms=summary.latency_ms,
-                    error_message=None,
-                )
-                success_count += 1
-            except SummarySchemaError as exc:
-                failure_count += 1
-                error = str(exc)
-                errors.append(f"{item.id}: {error}")
-                self._repository.mark_item_summary_failed(item_id=item.id, error=error)
-                self._repository.log_llm_call(
-                    provider=provider,
-                    object_type="item",
-                    object_id=item.id,
-                    status="schema_error",
-                    input_tokens=None,
-                    output_tokens=None,
-                    latency_ms=None,
-                    error_message=error,
-                )
-            except Exception as exc:  # noqa: BLE001
-                failure_count += 1
-                error = str(exc)
-                errors.append(f"{item.id}: {error}")
-                self._repository.mark_item_summary_failed(item_id=item.id, error=error)
-                self._repository.log_llm_call(
-                    provider=provider,
-                    object_type="item",
-                    object_id=item.id,
-                    status="failed",
-                    input_tokens=None,
-                    output_tokens=None,
-                    latency_ms=None,
-                    error_message=error,
-                )
+                batch_summaries = self._client.summarize_items(provider=provider, items=batch)
+            except (AttributeError, NotImplementedError):
+                batch_summaries = {}
+            except Exception:  # noqa: BLE001
+                batch_summaries = {}
+            for item in batch:
+                try:
+                    summary = batch_summaries.get(item.id)
+                    if summary is None:
+                        summary = self._client.summarize_item(provider=provider, item=item)
+                    self._repository.mark_item_summarized(
+                        item_id=item.id,
+                        provider=provider,
+                        summary=summary,
+                        prompt_version=ITEM_SUMMARY_PROMPT_VERSION,
+                    )
+                    self._repository.log_llm_call(
+                        provider=provider, object_type="item", object_id=item.id,
+                        status="success", input_tokens=summary.input_tokens,
+                        output_tokens=summary.output_tokens, latency_ms=summary.latency_ms,
+                        error_message=None,
+                    )
+                    success_count += 1
+                except SummarySchemaError as exc:
+                    failure_count += 1
+                    error = str(exc)
+                    errors.append(f"{item.id}: {error}")
+                    self._repository.mark_item_summary_failed(item_id=item.id, error=error)
+                except Exception as exc:  # noqa: BLE001
+                    failure_count += 1
+                    error = str(exc)
+                    errors.append(f"{item.id}: {error}")
+                    self._repository.mark_item_summary_failed(item_id=item.id, error=error)
+
+        total_count = len(items)
+        if errors and success_count == 0 and items:
+            # Batch failures are already recorded; preserve the job failure state.
+            pass
 
         total_count = len(items)
         if errors:
