@@ -130,10 +130,12 @@ class NormalizeJobExecutor:
 
         params = self._repository.get_job_params(job_run_id)
         source_id = _uuid_or_none(params.get("source_id"))
+        pipeline_started_at = _pipeline_started_at(params)
         limit = _positive_int(params.get("limit"), default=500, maximum=5000)
         raw_items = self._repository.list_raw_items_for_normalization(
             source_id=source_id,
             limit=limit,
+            pipeline_started_at=pipeline_started_at,
         )
 
         success_count = 0
@@ -218,9 +220,10 @@ class RankJobExecutor:
 
         params = self._repository.get_job_params(job_run_id)
         source_id = _uuid_or_none(params.get("source_id"))
+        pipeline_started_at = _pipeline_started_at(params)
         limit = _positive_int(params.get("limit"), default=500, maximum=5000)
         now = datetime.now(UTC)
-        items = self._repository.list_items_for_ranking(source_id=source_id, limit=limit)
+        items = self._repository.list_items_for_ranking(source_id=source_id, limit=limit, pipeline_started_at=pipeline_started_at)
         rule_results = {item.id: score_item(item, now=now) for item in items}
         jev_item_ids = {
             item.id
@@ -303,6 +306,17 @@ def _uuid_or_none(value: object) -> UUID | None:
         return UUID(str(value))
     except ValueError:
         return None
+
+
+def _pipeline_started_at(params: dict[str, object]) -> datetime | None:
+    value = params.get("pipeline_started_at")
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
 def _datetime_or_none(value: object) -> datetime | None:

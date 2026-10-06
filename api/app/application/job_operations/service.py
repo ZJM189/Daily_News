@@ -123,6 +123,7 @@ class JobOperationsService:
     ) -> list[JobRunDTO]:
         self._require_admin(actor)
         effective_digest_date = digest_date or default_digest_date()
+        pipeline_started_at = datetime.now().isoformat()
         return [
             self._repository.create_job(
                 job_type="collect",
@@ -138,7 +139,7 @@ class JobOperationsService:
                 source_id=None,
                 parent_job_run_id=None,
                 created_by=actor.id,
-                params={"limit": normalize_limit},
+                params={"limit": normalize_limit, "pipeline_started_at": pipeline_started_at},
             ),
             self._repository.create_job(
                 job_type="rank",
@@ -146,7 +147,7 @@ class JobOperationsService:
                 source_id=None,
                 parent_job_run_id=None,
                 created_by=actor.id,
-                params={"limit": rank_limit},
+                params={"limit": rank_limit, "pipeline_started_at": pipeline_started_at},
             ),
             self._repository.create_job(
                 job_type="dedupe",
@@ -154,7 +155,7 @@ class JobOperationsService:
                 source_id=None,
                 parent_job_run_id=None,
                 created_by=actor.id,
-                params={"limit": topic_limit},
+                params={"limit": topic_limit, "pipeline_started_at": pipeline_started_at},
             ),
             self._repository.create_job(
                 job_type="summarize",
@@ -162,7 +163,7 @@ class JobOperationsService:
                 source_id=None,
                 parent_job_run_id=None,
                 created_by=actor.id,
-                params={"limit": summarize_limit, "min_score": min_score},
+                params={"limit": summarize_limit, "min_score": min_score, "pipeline_started_at": pipeline_started_at},
             ),
             self._repository.create_job(
                 job_type="generate_digest",
@@ -173,6 +174,7 @@ class JobOperationsService:
                 params={
                     "digest_date": effective_digest_date.isoformat(),
                     "exclude_recent_digest_days": max(exclude_recent_digest_days, 0),
+                    "pipeline_started_at": pipeline_started_at,
                 },
             ),
         ]

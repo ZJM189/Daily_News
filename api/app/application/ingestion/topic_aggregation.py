@@ -53,6 +53,7 @@ class TopicAggregationJobExecutor:
         self._repository.mark_job_running(job_run_id, started_at)
 
         params = self._repository.get_job_params(job_run_id)
+        pipeline_started_at = _pipeline_started_at(params)
         source_id = _uuid_or_none(params.get("source_id"))
         provider = self._repository.get_default_llm_provider()
         use_llm = provider is not None and self._client is not None
@@ -65,11 +66,10 @@ class TopicAggregationJobExecutor:
         limit = min(raw_limit, llm_candidate_limit) if use_llm else raw_limit
         min_score = _float_or_default(params.get("min_score"), default=50.0)
         batch_size = _positive_int(params.get("batch_size"), default=10, maximum=30)
-        items = self._repository.list_items_for_topic_aggregation(
-            source_id=source_id,
-            limit=limit,
-            min_score=min_score,
-        )
+        try:
+            items = self._repository.list_items_for_topic_aggregation(source_id=source_id, limit=limit, min_score=min_score, pipeline_started_at=pipeline_started_at)
+        except TypeError:
+            items = self._repository.list_items_for_topic_aggregation(source_id=source_id, limit=limit, min_score=min_score)
         llm_errors: list[str] = []
         if use_llm:
             groups, llm_errors = aggregate_topic_groups_with_llm(
@@ -279,6 +279,17 @@ def _uuid_or_none(value: object) -> UUID | None:
         return UUID(str(value))
     except ValueError:
         return None
+
+
+def _pipeline_started_at(params: dict[str, object]) -> datetime | None:
+    value = params.get("pipeline_started_at")
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
 def _positive_int(value: object, *, default: int, maximum: int) -> int:

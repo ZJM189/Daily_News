@@ -59,6 +59,24 @@ class GenerateDigestJobExecutor:
             exclude_recent_digest_days=exclude_recent_digest_days,
         )
 
+        if not candidates:
+            message = "no digest candidates available; publication skipped"
+            self._repository.mark_job_finished(
+                job_run_id=job_run_id,
+                status="failed",
+                total_count=0,
+                success_count=0,
+                failure_count=1,
+                error_message=message,
+                ended_at=datetime.now(UTC),
+            )
+            return GenerateDigestExecutionResult(
+                job_run_id=job_run_id,
+                total_count=0,
+                success_count=0,
+                failure_count=1,
+            )
+
         generated_at = datetime.now(UTC)
         self._repository.create_published_digest(
             digest_date=digest_date,

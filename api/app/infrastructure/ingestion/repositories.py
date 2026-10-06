@@ -225,10 +225,13 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         *,
         source_id: UUID | None,
         limit: int,
+        pipeline_started_at: datetime | None = None,
     ) -> list[RawItemForNormalizationDTO]:
         conditions = [RawItem.status == ItemStatus.COLLECTED]
         if source_id is not None:
             conditions.append(RawItem.source_id == source_id)
+        if pipeline_started_at is not None:
+            conditions.append(RawItem.created_at >= pipeline_started_at)
 
         raw_items = self._session.scalars(
             select(RawItem).where(*conditions).order_by(RawItem.fetched_at.asc()).limit(limit)
@@ -292,10 +295,13 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         *,
         source_id: UUID | None,
         limit: int,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForRankingDTO]:
         conditions = [Item.status == ItemStatus.NORMALIZED]
         if source_id is not None:
             conditions.append(Item.source_id == source_id)
+        if pipeline_started_at is not None:
+            conditions.append(Item.created_at >= pipeline_started_at)
 
         items = self._session.execute(
             select(Item, Source)
@@ -343,6 +349,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         source_id: UUID | None,
         limit: int,
         min_score: float,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForTopicAggregationDTO]:
         conditions = [
             Item.status.in_([ItemStatus.RANKED, ItemStatus.SUMMARIZED]),
@@ -350,6 +357,8 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         ]
         if source_id is not None:
             conditions.append(Item.source_id == source_id)
+        if pipeline_started_at is not None:
+            conditions.append(Item.created_at >= pipeline_started_at)
 
         items = self._session.scalars(
             select(Item)
@@ -455,6 +464,7 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         source_id: UUID | None,
         limit: int,
         min_score: float,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForSummarizationDTO]:
         conditions = [
             Item.status.in_([ItemStatus.RANKED, ItemStatus.FAILED]),
@@ -463,6 +473,8 @@ class SqlAlchemyIngestionRepository(IngestionRepository):
         ]
         if source_id is not None:
             conditions.append(Item.source_id == source_id)
+        if pipeline_started_at is not None:
+            conditions.append(Item.created_at >= pipeline_started_at)
 
         items = self._session.scalars(
             select(Item)

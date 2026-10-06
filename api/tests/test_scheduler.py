@@ -105,15 +105,17 @@ def test_digest_schedule_expands_to_full_daily_pipeline() -> None:
         "generate_digest",
     ]
     assert definitions[0].params == {"source_types": ["rss", "github"]}
-    assert definitions[1].params == {"limit": 3000}
-    assert definitions[2].params == {"limit": 2000}
-    assert definitions[3].params == {"limit": 500}
-    assert definitions[4].params == {"limit": 80, "min_score": 65.0}
+    pipeline_started_at = "2026-09-04T00:00:00+00:00"
+    assert definitions[1].params == {"limit": 3000, "pipeline_started_at": pipeline_started_at}
+    assert definitions[2].params == {"limit": 2000, "pipeline_started_at": pipeline_started_at}
+    assert definitions[3].params == {"limit": 500, "pipeline_started_at": pipeline_started_at}
+    assert definitions[4].params == {"limit": 80, "min_score": 65.0, "pipeline_started_at": pipeline_started_at}
     assert definitions[5].params == {
         "limit": 20,
         "digest_date": "2026-09-04",
         "timezone": "Asia/Shanghai",
         "exclude_recent_digest_days": 3,
+        "pipeline_started_at": pipeline_started_at,
     }
 
 
@@ -125,3 +127,11 @@ def test_non_digest_schedule_creates_single_job_definition() -> None:
     assert len(definitions) == 1
     assert definitions[0].job_type == "collect"
     assert definitions[0].params == {"source_types": ["rss"]}
+
+
+def test_digest_schedule_uses_current_time_when_now_is_omitted() -> None:
+    definitions = _scheduled_job_definitions(_config())
+
+    assert len(definitions) == 6
+    assert definitions[-1].job_type == "generate_digest"
+    assert isinstance(definitions[-1].params["pipeline_started_at"], str)

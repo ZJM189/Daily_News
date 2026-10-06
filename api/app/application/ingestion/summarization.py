@@ -67,11 +67,11 @@ class SummarizeJobExecutor:
         source_id = _uuid_or_none(params.get("source_id"))
         limit = _positive_int(params.get("limit"), default=100, maximum=1000)
         min_score = _float_or_default(params.get("min_score"), default=60.0)
-        items = self._repository.list_items_for_summarization(
-            source_id=source_id,
-            limit=limit,
-            min_score=min_score,
-        )
+        pipeline_started_at = _pipeline_started_at(params)
+        try:
+            items = self._repository.list_items_for_summarization(source_id=source_id, limit=limit, min_score=min_score, pipeline_started_at=pipeline_started_at)
+        except TypeError:
+            items = self._repository.list_items_for_summarization(source_id=source_id, limit=limit, min_score=min_score)
 
         success_count = 0
         failure_count = 0
@@ -194,6 +194,18 @@ def _confidence(value: object) -> float:
     except (TypeError, ValueError):
         return 0.5
     return min(max(confidence, 0.0), 1.0)
+
+
+def _pipeline_started_at(params: dict[str, object]):
+    value = params.get("pipeline_started_at")
+    if not isinstance(value, str):
+        return None
+    try:
+        from datetime import UTC, datetime
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
 def _uuid_or_none(value: object) -> UUID | None:

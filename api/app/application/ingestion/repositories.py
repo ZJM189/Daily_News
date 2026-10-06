@@ -74,6 +74,7 @@ class IngestionRepository(Protocol):
         *,
         source_id: UUID | None,
         limit: int,
+        pipeline_started_at: datetime | None = None,
     ) -> list[RawItemForNormalizationDTO]:
         raise NotImplementedError
 
@@ -105,6 +106,7 @@ class IngestionRepository(Protocol):
         *,
         source_id: UUID | None,
         limit: int,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForRankingDTO]:
         raise NotImplementedError
 
@@ -133,6 +135,7 @@ class IngestionRepository(Protocol):
         source_id: UUID | None,
         limit: int,
         min_score: float,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForTopicAggregationDTO]:
         raise NotImplementedError
 
@@ -148,6 +151,7 @@ class IngestionRepository(Protocol):
         source_id: UUID | None,
         limit: int,
         min_score: float,
+        pipeline_started_at: datetime | None = None,
     ) -> list[ItemForSummarizationDTO]:
         raise NotImplementedError
 

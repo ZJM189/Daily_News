@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -135,6 +135,7 @@ def _scheduled_job_definitions(
         ]
 
     digest_params = _scheduled_job_params(config, now=now)
+    pipeline_started_at = (now or datetime.now(UTC)).isoformat()
     collect_params: dict[str, Any] = {
         "source_types": _string_list(params.get("source_types")),
     }
@@ -143,6 +144,7 @@ def _scheduled_job_definitions(
 
     normalize_params: dict[str, Any] = {
         "limit": _positive_int(params.get("normalize_limit"), default=5000, maximum=5000),
+        "pipeline_started_at": pipeline_started_at,
     }
     if isinstance(params.get("language"), str):
         normalize_params["language"] = params["language"]
@@ -152,11 +154,11 @@ def _scheduled_job_definitions(
         ScheduledJobDefinition(job_type=JobType.NORMALIZE.value, params=normalize_params),
         ScheduledJobDefinition(
             job_type=JobType.RANK.value,
-            params={"limit": _positive_int(params.get("rank_limit"), default=5000, maximum=5000)},
+            params={"limit": _positive_int(params.get("rank_limit"), default=5000, maximum=5000), "pipeline_started_at": pipeline_started_at},
         ),
         ScheduledJobDefinition(
             job_type=JobType.DEDUPE.value,
-            params={"limit": _positive_int(params.get("topic_limit"), default=1000, maximum=5000)},
+            params={"limit": _positive_int(params.get("topic_limit"), default=1000, maximum=5000), "pipeline_started_at": pipeline_started_at},
         ),
         ScheduledJobDefinition(
             job_type=JobType.SUMMARIZE.value,
@@ -167,9 +169,10 @@ def _scheduled_job_definitions(
                     maximum=1000,
                 ),
                 "min_score": _float_param(params.get("min_score"), default=60.0),
+                "pipeline_started_at": pipeline_started_at,
             },
         ),
-        ScheduledJobDefinition(job_type=JobType.GENERATE_DIGEST.value, params=digest_params),
+        ScheduledJobDefinition(job_type=JobType.GENERATE_DIGEST.value, params={**digest_params, "pipeline_started_at": pipeline_started_at}),
     ]
 
 
