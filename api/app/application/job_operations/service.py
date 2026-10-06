@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -123,7 +123,7 @@ class JobOperationsService:
     ) -> list[JobRunDTO]:
         self._require_admin(actor)
         effective_digest_date = digest_date or default_digest_date()
-        pipeline_started_at = datetime.now().isoformat()
+        pipeline_started_at = datetime.now(UTC).isoformat()
         return [
             self._repository.create_job(
                 job_type="collect",
