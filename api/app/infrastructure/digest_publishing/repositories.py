@@ -77,19 +77,27 @@ class SqlAlchemyDigestPublishingRepository(DigestPublishingRepository):
         params = self._session.scalar(select(JobRun.params).where(JobRun.id == job_run_id))
         return params if isinstance(params, dict) else {}
 
-    def has_failed_summarize_job(self, *, start_at: datetime, end_at: datetime) -> bool:
-        return bool(
-            self._session.scalar(
-                select(JobRun.id)
-                .where(
-                    JobRun.job_type == JobType.SUMMARIZE,
-                    JobRun.status == JobStatus.FAILED,
-                    JobRun.created_at >= start_at,
-                    JobRun.created_at < end_at,
-                )
-                .limit(1)
+    def has_failed_summarize_job(
+        self,
+        *,
+        start_at: datetime,
+        end_at: datetime,
+        pipeline_started_at: str | None = None,
+    ) -> bool:
+        query = select(JobRun.status).where(JobRun.job_type == JobType.SUMMARIZE)
+        if pipeline_started_at:
+            # The shared batch marker also works for pipelines crossing midnight.
+            query = query.where(
+                JobRun.params["pipeline_started_at"].as_string() == pipeline_started_at
             )
+        else:
+            # Standalone generation has no batch marker; use the latest daily attempt.
+            query = query.where(JobRun.created_at >= start_at, JobRun.created_at < end_at)
+
+        status = self._session.scalar(
+            query.order_by(JobRun.created_at.desc(), JobRun.started_at.desc()).limit(1)
         )
+        return status == JobStatus.FAILED
 
     def list_digest_topic_candidates(
         self,

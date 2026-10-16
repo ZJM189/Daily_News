@@ -139,6 +139,34 @@ def test_generate_digest_job_accepts_recent_digest_exclusion_override() -> None:
     assert repo.list_args["exclude_recent_digest_days"] == 7
 
 
+def test_generate_digest_checks_its_own_pipeline() -> None:
+    pipeline_started_at = "2026-09-03T00:48:09+00:00"
+    repo = _FakeDigestRepository(
+        params={"digest_date": "2026-09-03", "pipeline_started_at": pipeline_started_at},
+        candidates=[_candidate(title="重跑成功")],
+    )
+
+    result = GenerateDigestJobExecutor(repo).run_generate_digest_job(uuid4())
+
+    assert repo.summarize_check_args["pipeline_started_at"] == pipeline_started_at
+    assert result.success_count == 1
+    assert repo.finished["status"] == "success"
+
+
+def test_generate_digest_still_blocks_when_its_summarize_job_failed() -> None:
+    repo = _FakeDigestRepository(
+        params={"digest_date": "2026-09-03"},
+        candidates=[_candidate(title="摘要失败")],
+    )
+    repo.summarize_failed = True
+
+    result = GenerateDigestJobExecutor(repo).run_generate_digest_job(uuid4())
+
+    assert result.failure_count == 1
+    assert repo.finished["error_message"] == "summarize job failed; digest publication skipped"
+    assert not hasattr(repo, "created_digest")
+
+
 def _candidate(
     *,
     title: str,
@@ -162,9 +190,15 @@ class _FakeDigestRepository:
         self.params = params
         self.candidates = candidates
         self.list_args: dict[str, object] = {}
+        self.summarize_failed = False
 
-    def has_failed_summarize_job(self, *, start_at, end_at) -> bool:
-        return False
+    def has_failed_summarize_job(self, *, start_at, end_at, pipeline_started_at=None) -> bool:
+        self.summarize_check_args = {
+            "start_at": start_at,
+            "end_at": end_at,
+            "pipeline_started_at": pipeline_started_at,
+        }
+        return self.summarize_failed
 
     def mark_job_running(self, job_run_id, started_at: datetime) -> None:
         pass

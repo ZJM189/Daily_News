@@ -34,7 +34,14 @@ class GenerateDigestJobExecutor:
             maximum=30,
         )
         start_at, end_at = digest_window(digest_date, timezone)
-        if self._repository.has_failed_summarize_job(start_at=start_at, end_at=end_at):
+        pipeline_started_at = params.get("pipeline_started_at")
+        if self._repository.has_failed_summarize_job(
+            start_at=start_at,
+            end_at=end_at,
+            pipeline_started_at=(
+                pipeline_started_at if isinstance(pipeline_started_at, str) else None
+            ),
+        ):
             message = "summarize job failed; digest publication skipped"
             self._repository.mark_job_finished(
                 job_run_id=job_run_id,
